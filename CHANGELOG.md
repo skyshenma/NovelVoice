@@ -27,6 +27,11 @@ NovelVoice 的所有重要更改都将记录在此文件中。
   - 更新默认配置只需修改 `config.example.yml`，无需修改代码
   - 减少约 80 行硬编码配置，提高可维护性
   - 保留最小化硬编码配置作为最后的后备方案
+- **全面移除硬编码值**：所有配置参数现在都从 `config.yml` 读取
+  - TTS 引擎：`max_chars`、`timeout`、`max_logs` 从配置读取
+  - Bark 通知：静默时间段（`silent_hours`）和 HTTP 超时（`http_timeout`）可配置
+  - 文本处理：`chunk_size` 从配置读取
+  - 新增配置项：`logging.max_logs`、`bark.silent_hours`、`bark.http_timeout`、`tts.timeout`
 
 
 ## [1.1.2] - 2026-02-08

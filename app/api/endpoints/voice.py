@@ -5,7 +5,7 @@ import hashlib
 import io
 import edge_tts
 
-from app.core.config import VOICES_LIST, APP_DATA_DIR, CACHE_DIR
+from app.core.config import VOICES_LIST, APP_DATA_DIR, CACHE_DIR, WEB_BASE_URL, config
 from app.schemas.config import CustomPreviewRequest, TTSConfig, PreviewRequest
 from app.services.tts_engine import TTSProcessor
 
@@ -164,13 +164,18 @@ class BarkTestRequest(PydanticBaseModel):
 async def test_bark_notification(request: BarkTestRequest):
     """测试 Bark 推送配置"""
     from app.services.notifier import BarkNotifier
-    from app.core.config import WEB_BASE_URL
+    
+    # Get Bark configuration
+    silent_hours_config = config.get_section("bark.silent_hours")
+    http_timeout = config.get("bark.http_timeout", 5)
     
     notifier = BarkNotifier(
         server_url=request.server_url,
         api_key=request.api_key,
         enabled=True,
-        web_base_url=WEB_BASE_URL
+        web_base_url=WEB_BASE_URL,
+        silent_hours_config=silent_hours_config,
+        http_timeout=http_timeout
     )
     
     success = await notifier.send_test()

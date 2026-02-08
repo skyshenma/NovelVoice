@@ -7,6 +7,11 @@ server:
   port: 8000
   reload: false
 
+# ==================== 日志配置 ====================
+logging:
+  max_logs: 200  # 内存中保留的最大日志条数
+  error_log_file: "error.log"  # 错误日志文件名
+
 # ==================== TTS 默认参数 ====================
 tts:
   default_voice: "zh-CN-XiaoxiaoNeural"
@@ -16,7 +21,7 @@ tts:
   max_chars: 8000
   concurrency_limit: 2
   max_retries: 3
-  timeout: 30
+  timeout: 30  # TTS 合成超时时间（秒）
 
 # ==================== 文本处理配置 ====================
 text_processing:
@@ -36,7 +41,7 @@ paths:
   
   # 路径自适应配置
   auto_detect: true           # 启用自动路径检测
-  auto_migrate: false         # 自动迁移旧数据(生产环境建议 true)
+  auto_migrate: true         # 自动迁移旧数据(生产环境建议 true)
   fallback_to_temp: true      # 无可用路径时使用临时目录
 
 # ==================== Bark 通知配置 ====================
@@ -45,6 +50,15 @@ bark:
   server_url: "https://api.day.app"
   api_key: ""
   web_base_url: "http://localhost:8000"
+  
+  # 静默时间段配置（在此时间段内不发送通知）
+  silent_hours:
+    enabled: true
+    start: "22:00"  # 开始时间（24小时制）
+    end: "08:00"    # 结束时间（24小时制）
+  
+  # HTTP 请求超时时间（秒）
+  http_timeout: 5
 
 # ==================== 可用语音列表 ====================
 # 格式: [风格] 语言 - 地区 - 性别 - 名称

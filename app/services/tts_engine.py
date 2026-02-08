@@ -30,7 +30,10 @@ class TTSProcessor:
     def __init__(self, book_dir: str, voice: str = "zh-CN-XiaoxiaoNeural", 
                  rate: str = "+0%", volume: str = "+0%", pitch: str = "+0Hz",
                  concurrency_limit: Union[int, Callable[[], int]] = 2,
-                 notifier = None):
+                 notifier = None,
+                 max_chars: Optional[int] = None,
+                 timeout: Optional[int] = None,
+                 max_logs: Optional[int] = None):
         self.book_dir = pathlib.Path(book_dir)
         self.tasks_file = self.book_dir / "tasks.json"
         
@@ -68,8 +71,13 @@ class TTSProcessor:
         self.volume = clean_param(volume, "%")
         self.pitch = clean_param(pitch, "Hz")
         
-        # 长文本阈值
-        self.max_chars = 8000
+        # 长文本阈值（从配置读取）
+        from app.core.config import MAX_CHARS
+        self.max_chars = max_chars if max_chars is not None else MAX_CHARS
+        
+        # 超时时间（从配置读取）
+        from app.core.config import TTS_TIMEOUT
+        self.timeout = timeout if timeout is not None else TTS_TIMEOUT
         
         # 并发控制
         self.semaphore = DynamicSemaphore(concurrency_limit)
@@ -85,11 +93,13 @@ class TTSProcessor:
         # Bark 通知服务
         self.notifier = notifier
         
-        # 日志系统
+        # 日志系统（从配置读取日志数量）
         from collections import deque
         from datetime import datetime
         import logging
-        self.logs = deque(maxlen=200) # Keep last 200 logs
+        from app.core.config import MAX_LOGS
+        log_limit = max_logs if max_logs is not None else MAX_LOGS
+        self.logs = deque(maxlen=log_limit)
         
         # Configure file logger
         self.logger = logging.getLogger(f"TTS_{self.book_dir.name}")
@@ -258,8 +268,8 @@ class TTSProcessor:
                     volume=self.volume, 
                     pitch=self.pitch
                 )
-                # 增加超时控制 (30s)
-                await asyncio.wait_for(communicate.save(str(output_path)), timeout=30.0)
+                # 超时控制（从配置读取）
+                await asyncio.wait_for(communicate.save(str(output_path)), timeout=self.timeout)
                 
                 # 验证文件
                 if output_path.exists() and output_path.stat().st_size > 0:

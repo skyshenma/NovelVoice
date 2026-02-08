@@ -65,9 +65,12 @@ class TxtParser(BaseParser):
                      return []
                      
                  if len(full_content) > 5000:
-                    print("No chapters detected, switching to fixed-length splitting (5000 chars/chunk)...")
+                    print("No chapters detected, switching to fixed-length splitting...")
+                    # 从配置读取块大小
+                    from app.core.config import CHUNK_SIZE
+                    chunk_size = CHUNK_SIZE
+                    print(f"Using chunk size: {chunk_size} chars/chunk")
                     tasks = []
-                    chunk_size = 5000
                     total_length = len(full_content)
                     
                     for i in range(0, total_length, chunk_size):

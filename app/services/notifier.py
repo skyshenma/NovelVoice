@@ -13,19 +13,38 @@ class BarkNotifier:
         server_url: str = "", 
         api_key: str = "", 
         enabled: bool = False,
-        web_base_url: str = "http://localhost:8000"
+        web_base_url: str = "http://localhost:8000",
+        silent_hours_config: Optional[dict] = None,
+        http_timeout: Optional[int] = None
     ):
         self.server_url = server_url.rstrip('/') if server_url else ""
         self.api_key = api_key
         self.enabled = enabled and server_url and api_key
         self.web_base_url = web_base_url
         
-        # 静默时间段: 22:00 - 08:00
-        self.silent_start = time(22, 0)
-        self.silent_end = time(8, 0)
+        # 静默时间段配置（从配置读取）
+        if silent_hours_config and silent_hours_config.get('enabled', True):
+            start_str = silent_hours_config.get('start', '22:00')
+            end_str = silent_hours_config.get('end', '08:00')
+            start_hour, start_min = map(int, start_str.split(':'))
+            end_hour, end_min = map(int, end_str.split(':'))
+            self.silent_start = time(start_hour, start_min)
+            self.silent_end = time(end_hour, end_min)
+            self.silent_enabled = True
+        else:
+            # 默认值：22:00 - 08:00
+            self.silent_start = time(22, 0)
+            self.silent_end = time(8, 0)
+            self.silent_enabled = False
+        
+        # HTTP 超时时间（从配置读取）
+        self.http_timeout = http_timeout if http_timeout is not None else 5
         
     def is_silent_period(self) -> bool:
         """检查是否在静默时间段"""
+        if not self.silent_enabled:
+            return False
+        
         now = datetime.now().time()
         if self.silent_start > self.silent_end:
             # 跨越午夜的情况 (22:00 - 08:00)
@@ -69,8 +88,8 @@ class BarkNotifier:
             if url:
                 params['url'] = url
             
-            # 发送异步请求
-            timeout = aiohttp.ClientTimeout(total=5)
+            # 发送异步请求（使用配置的超时时间）
+            timeout = aiohttp.ClientTimeout(total=self.http_timeout)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(bark_url, params=params) as resp:
                     if resp.status == 200:

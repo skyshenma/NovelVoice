@@ -2,7 +2,7 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from typing import List, Optional
 
-from app.core.config import APP_DATA_DIR, BARK_ENABLED, BARK_SERVER_URL, BARK_API_KEY, WEB_BASE_URL
+from app.core.config import APP_DATA_DIR, BARK_ENABLED, BARK_SERVER_URL, BARK_API_KEY, WEB_BASE_URL, config
 from app.core.state import state
 from app.services.tts_engine import TTSProcessor
 from app.services.notifier import BarkNotifier
@@ -16,12 +16,17 @@ async def run_tts_task(book_name: str, config: TTSConfig, chapter_ids: Optional[
         print(f"Directory not found for {book_name}")
         return
 
-    # Initialize Bark Notifier
+    # Initialize Bark Notifier with configuration
+    silent_hours_config = config.get_section("bark.silent_hours")
+    http_timeout = config.get("bark.http_timeout", 5)
+    
     notifier = BarkNotifier(
         server_url=BARK_SERVER_URL,
         api_key=BARK_API_KEY,
         enabled=BARK_ENABLED,
-        web_base_url=WEB_BASE_URL
+        web_base_url=WEB_BASE_URL,
+        silent_hours_config=silent_hours_config,
+        http_timeout=http_timeout
     )
 
     # Initialize Processor
