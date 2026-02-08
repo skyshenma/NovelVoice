@@ -20,9 +20,14 @@ class ConfigLoader:
             config_path: 配置文件路径,默认为 data/config/config.yml
         """
         if config_path is None:
-            # 默认配置文件路径
-            base_dir = pathlib.Path(__file__).resolve().parent.parent.parent
-            config_path = base_dir / "data" / "config" / "config.yml"
+            # 优先检查环境变量
+            env_data_dir = os.getenv("NOVELVOICE_DATA_DIR")
+            if env_data_dir:
+                config_path = pathlib.Path(env_data_dir) / "config" / "config.yml"
+            else:
+                # 默认配置文件路径
+                base_dir = pathlib.Path(__file__).resolve().parent.parent.parent
+                config_path = base_dir / "data" / "config" / "config.yml"
         
         self.config_path = pathlib.Path(config_path)
         self._config: Dict[str, Any] = {}

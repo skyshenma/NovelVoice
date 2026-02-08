@@ -7,6 +7,11 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.1.1] - 2026-02-08
+
+### 修复
+- 修复 Docker 环境下配置文件路径识别错误的问题 (优先使用 `NOVELVOICE_DATA_DIR` 环境变量)
+
 ## [1.1.0] - 2026-02-08
 
 
@@ -77,6 +82,7 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ---
 
-[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.0...HEAD
+[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.1
 [1.1.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.0
 [1.0.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.0.0
