@@ -932,8 +932,8 @@
                         chapter_ids: idsToRun.length > 0 ? idsToRun : undefined,
                         config: {
                             voice: config.value.voice,
-                            rate: config.value.rate + "%",
-                            volume: config.value.volume + "%",
+                            rate: config.value.rate,
+                            volume: config.value.volume,
                             pitch: config.value.pitch || "+0Hz"
                         }
                     };
@@ -967,8 +967,8 @@
                         chapter_ids: idsToRun,
                         config: {
                             voice: config.value.voice,
-                            rate: config.value.rate + "%",
-                            volume: config.value.volume + "%",
+                            rate: config.value.rate,
+                            volume: config.value.volume,
                             pitch: config.value.pitch || "+0Hz"
                         }
                     };
@@ -1155,8 +1155,8 @@
                             chapter_id: chapter.id,
                             config: {
                                 ...config.value,
-                                rate: config.value.rate + "%",
-                                volume: config.value.volume + "%",
+                                rate: config.value.rate,
+                                volume: config.value.volume,
                                 pitch: config.value.pitch || "+0Hz"
                             }
                         }, { responseType: 'blob' });

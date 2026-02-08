@@ -37,12 +37,31 @@ class TTSProcessor:
         # TTS 参数
         self.voice = voice
         # TTS 参数
-        # Treat "0" values as None to use default
         def clean_param(p, suffix):
-            if not p: return None
-            s = p.strip()
-            if s in ["0", "+0", "-0", "0"+suffix, "+0"+suffix, "-0"+suffix]:
-                return None
+            default = f"+0{suffix}"
+            if p is None:
+                return default
+            
+            # Ensure string
+            s = str(p).strip()
+            if not s:
+                return default
+                
+            # Handle plain numbers (0 -> +0%)
+            if s.isdigit() or (s.startswith(('+', '-')) and s[1:].isdigit()):
+                return f"{s}{suffix}"
+                
+            # Handle existing suffix
+            if not s.endswith(suffix):
+                # If it doesn't end with suffix, append it? 
+                # But if it's "raw", maybe we should check.
+                # Let's assume input needs suffix if missing.
+                s += suffix
+            
+            # Normalize 0% -> +0%
+            if s in [f"0{suffix}", f"-0{suffix}"]:
+                 return default
+                 
             return s
 
         self.rate = clean_param(rate, "%")

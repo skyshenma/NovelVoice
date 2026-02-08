@@ -7,6 +7,12 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.1.2] - 2026-02-08
+
+### 修复
+- 修复前端请求 TTS 任务时语速和音量参数错误 (去除重复的百分号后缀)，解决 "Invalid rate '+0%%'" 导致生成失败的问题
+- 增强后端 TTS 参数处理逻辑，防止因参数为空导致的 "rate must be str" 错误
+
 ## [1.1.1] - 2026-02-08
 
 ### 修复
@@ -82,7 +88,8 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ---
 
-[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.1...HEAD
+[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.2
 [1.1.1]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.1
 [1.1.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.0
 [1.0.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.0.0
