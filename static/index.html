@@ -81,8 +81,8 @@
                     <select v-model="config.voice"
                         class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         <option v-for="v in voices" :key="v.ShortName" :value="v.ShortName">
-                            {{ v.Style ? `[${v.Style}] ` : '' }}{{ v.ShortName.split('-').pop().replace('Neural','') }}
-                            ({{ v.Gender }})
+                            {{ v.Description || `[${v.Style}] ${v.ShortName.split('-').pop().replace('Neural','')}
+                            (${v.Gender})` }}
                         </option>
                     </select>
                 </div>
