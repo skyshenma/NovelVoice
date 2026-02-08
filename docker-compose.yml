@@ -2,10 +2,15 @@ version: '3.8'
 
 services:
   novelvoice:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: novelvoice:latest
+    # 使用 Docker Hub 镜像
+    image: skyshenma2024/novelvoice:latest
+
+    # 或者本地构建
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    # image: novelvoice:latest
+
     container_name: novelvoice
     restart: unless-stopped
 
@@ -16,11 +21,11 @@ services:
       # Data persistence
       - ./data:/data
       # Config file (optional, for easy editing)
-      - ./data/config/config.yml:/data/config/config.yml
+      # - ./data/config/config.yml:/data/config/config.yml
 
-    # Load environment variables from .env file (if exists)
-    env_file:
-      - .env
+      # Load environment variables from .env file (optional)
+      # env_file:
+      #   - .env
 
     environment:
       # Application settings

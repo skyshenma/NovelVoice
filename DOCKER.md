@@ -13,15 +13,38 @@
 
 ## 🚀 快速开始
 
-### 方式一: 使用 Docker Compose (推荐)
+### 方式一: 一键启动 (最简单)
+
+**直接从 Docker Hub 拉取并运行**,无需克隆代码:
 
 ```bash
-# 1. 克隆项目
-git clone <repository-url>
-cd NovelVoice
+# 1. 创建数据目录
+mkdir -p novelvoice/data && cd novelvoice
+
+# 2. 拉取并运行
+docker run -d \
+  --name novelvoice \
+  -p 8000:8000 \
+  -v $(pwd)/data:/data \
+  skyshenma2024/novelvoice:latest
+
+# 3. 查看日志
+docker logs -f novelvoice
+
+# 4. 访问应用
+open http://localhost:8000
+```
+
+**就这么简单!** 应用已经运行,包含完整的默认配置。
+
+### 方式二: 使用 Docker Compose (推荐用于生产)
+
+```bash
+# 1. 下载配置文件
+curl -O https://raw.githubusercontent.com/skyshenma/NovelVoice/main/docker-compose.simple.yml
 
 # 2. 启动服务
-docker-compose up -d
+docker-compose -f docker-compose.simple.yml up -d
 
 # 3. 查看日志
 docker-compose logs -f
@@ -30,21 +53,24 @@ docker-compose logs -f
 open http://localhost:8000
 ```
 
-### 方式二: 使用 Docker 命令
+### 方式三: 本地构建镜像
+
+如果你想自己构建镜像:
 
 ```bash
-# 1. 构建镜像
+# 1. 克隆项目
+git clone https://github.com/skyshenma/NovelVoice.git
+cd NovelVoice
+
+# 2. 构建镜像
 docker build -t novelvoice:latest .
 
-# 2. 运行容器
+# 3. 运行容器
 docker run -d \
   --name novelvoice \
   -p 8000:8000 \
   -v $(pwd)/data:/data \
   novelvoice:latest
-
-# 3. 查看日志
-docker logs -f novelvoice
 ```
 
 ---
@@ -80,25 +106,96 @@ data/
 ## ⚙️ 配置
 
 ### 环境变量
+## ⚙️ 配置说明
 
-在 `docker-compose.yml` 中配置:
+### 默认配置
+
+**Docker 镜像已包含完整的默认配置,可以直接运行,无需任何配置文件!**
+
+默认配置包括:
+- ✅ TTS 语音: zh-CN-XiaoxiaoNeural (晓晓)
+- ✅ 并发限制: 2
+- ✅ 数据目录: /data
+- ✅ 服务端口: 8000
+- ✅ 所有核心功能
+
+### 自定义配置
+
+如果需要自定义配置,有三种方式:
+
+#### 方式一: 使用环境变量 (推荐)
+
+在 `docker run` 命令中添加 `-e` 参数:
+
+```bash
+docker run -d \
+  --name novelvoice \
+  -p 8000:8000 \
+  -v $(pwd)/data:/data \
+  -e NOVELVOICE_TTS_VOICE=zh-CN-YunxiNeural \
+  -e NOVELVOICE_TTS_CONCURRENCY=4 \
+  -e NOVELVOICE_BARK_ENABLED=true \
+  -e NOVELVOICE_BARK_API_KEY=your_bark_key_here \
+  skyshenma2024/novelvoice:latest
+```
+
+或在 `docker-compose.yml` 中配置:
 
 ```yaml
 environment:
-  ### 常用环境变量
-  # TTS 配置
-  - NOVELVOICE_TTS_VOICE=zh-CN-XiaoxiaoNeural  # 默认语音
-  - NOVELVOICE_TTS_RATE=+0%                     # 语速
-  - NOVELVOICE_TTS_CONCURRENCY=2                # 并发数
-
-  # 服务器配置
-  - NOVELVOICE_HOST=0.0.0.0
-  - NOVELVOICE_PORT=8000
-
-  # Bark 推送
-  - NOVELVOICE_BARK_ENABLED=false
-  - NOVELVOICE_BARK_API_KEY=your_key_here
+  - NOVELVOICE_TTS_VOICE=zh-CN-YunxiNeural
+  - NOVELVOICE_TTS_CONCURRENCY=4
+  - NOVELVOICE_BARK_ENABLED=true
+  - NOVELVOICE_BARK_API_KEY=your_bark_key_here
 ```
+
+#### 方式二: 使用 .env 文件
+
+创建 `.env` 文件:
+
+```bash
+NOVELVOICE_TTS_VOICE=zh-CN-YunxiNeural
+NOVELVOICE_TTS_CONCURRENCY=4
+NOVELVOICE_BARK_ENABLED=true
+NOVELVOICE_BARK_API_KEY=your_bark_key_here
+```
+
+在 `docker-compose.yml` 中引用:
+
+```yaml
+env_file:
+  - .env
+```
+
+#### 方式三: 挂载配置文件
+
+创建 `config.yml` 并挂载:
+
+```bash
+# 1. 下载示例配置
+curl -O https://raw.githubusercontent.com/skyshenma/NovelVoice/main/data/config/config.example.yml
+
+# 2. 重命名并编辑
+mv config.example.yml config.yml
+nano config.yml
+
+# 3. 挂载配置文件
+docker run -d \
+  --name novelvoice \
+  -p 8000:8000 \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/config.yml:/data/config/config.yml \
+  skyshenma2024/novelvoice:latest
+```
+
+### 配置优先级
+
+配置加载优先级(从高到低):
+1. **环境变量** (最高优先级)
+2. **config.yml** (如果挂载)
+3. **默认配置** (内置)
+
+---
 
 **语音选项** (共31种):
 - `zh-CN-XiaoxiaoNeural` - 普通话-女-温暖 (推荐)

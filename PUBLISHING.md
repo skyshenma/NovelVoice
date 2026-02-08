@@ -46,8 +46,8 @@ git add .
 # 首次提交
 git commit -m "feat: initial commit - NovelVoice v1.0.0"
 
-# 添加远程仓库 (替换 yourusername 为您的 GitHub 用户名)
-git remote add origin https://github.com/yourusername/NovelVoice.git
+# 添加远程仓库
+git remote add origin https://github.com/skyshenma/NovelVoice.git
 
 # 推送到 GitHub
 git branch -M main
@@ -137,10 +137,10 @@ docker buildx build \
 ```markdown
 # NovelVoice - AI 有声书生成器
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/NovelVoice)](https://github.com/yourusername/NovelVoice/releases)
-[![Docker Image](https://img.shields.io/docker/v/yourusername/novelvoice?label=docker)](https://hub.docker.com/r/yourusername/novelvoice)
-[![Docker Pulls](https://img.shields.io/docker/pulls/yourusername/novelvoice)](https://hub.docker.com/r/yourusername/novelvoice)
-[![License](https://img.shields.io/github/license/yourusername/NovelVoice)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/skyshenma/NovelVoice)](https://github.com/skyshenma/NovelVoice/releases)
+[![Docker Image](https://img.shields.io/docker/v/skyshenma2024/novelvoice?label=docker)](https://hub.docker.com/r/skyshenma2024/novelvoice)
+[![Docker Pulls](https://img.shields.io/docker/pulls/skyshenma2024/novelvoice)](https://hub.docker.com/r/skyshenma2024/novelvoice)
+[![License](https://img.shields.io/github/license/skyshenma/NovelVoice)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
 基于 Microsoft Edge TTS 的智能有声书生成工具,支持 TXT/EPUB 格式,提供现代化 Web 界面。
@@ -218,17 +218,17 @@ Docker Hub 仓库说明会自动从 README.md 同步 (通过 GitHub Actions)。
 
 ```bash
 # 拉取最新版本
-docker pull yourusername/novelvoice:latest
+docker pull skyshenma2024/novelvoice:latest
 
 # 拉取特定版本
-docker pull yourusername/novelvoice:1.0.0
+docker pull skyshenma2024/novelvoice:1.0.0
 
 # 运行容器
 docker run -d \
   --name novelvoice \
   -p 8000:8000 \
   -v $(pwd)/data:/data \
-  yourusername/novelvoice:latest
+  skyshenma2024/novelvoice:latest
 ```
 
 ### 使用 Docker Compose
@@ -238,7 +238,7 @@ docker run -d \
 ```yaml
 services:
   novelvoice:
-    image: yourusername/novelvoice:latest
+    image: skyshenma2024/novelvoice:latest
     # ... 其他配置
 ```
 

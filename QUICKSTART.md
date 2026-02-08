@@ -1,25 +1,44 @@
-# NovelVoice - 快速开始
+# 快速开始指南
 
-## 📋 环境要求
-
-- Python 3.12+
-- Docker 20.10+ (可选)
+本指南帮助您快速部署和使用 NovelVoice。
 
 ---
 
-## 🚀 方式一: Docker 部署 (推荐)
+## 🐳 方式一: Docker 部署 (推荐)
+
+**最简单的方式** - 一键启动,无需配置:
 
 ```bash
-# 1. 启动服务
-docker-compose up -d
+# 1. 创建数据目录
+mkdir -p novelvoice/data && cd novelvoice
 
-# 2. 查看日志
-docker-compose logs -f
+# 2. 拉取并运行
+docker run -d \
+  --name novelvoice \
+  -p 8000:8000 \
+  -v $(pwd)/data:/data \
+  skyshenma2024/novelvoice:latest
 
 # 3. 访问应用
 open http://localhost:8000
 ```
 
+**就这么简单!** 应用已经运行,包含完整的默认配置。
+
+### 使用 Docker Compose
+
+```bash
+# 1. 下载配置文件
+curl -O https://raw.githubusercontent.com/skyshenma/NovelVoice/main/docker-compose.simple.yml
+
+# 2. 启动服务
+docker-compose -f docker-compose.simple.yml up -d
+
+# 3. 访问应用
+open http://localhost:8000
+```
+
+---
 详细说明请查看 [DOCKER.md](DOCKER.md)
 
 ---
