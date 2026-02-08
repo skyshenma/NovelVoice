@@ -1,5 +1,11 @@
 # NovelVoice - AI 有声书生成器
 
+[![GitHub release](https://img.shields.io/github/v/release/skyshenma/NovelVoice)](https://github.com/skyshenma/NovelVoice/releases)
+[![Docker Image](https://img.shields.io/docker/v/skyshenma2024/novelvoice?label=docker)](https://hub.docker.com/r/skyshenma2024/novelvoice)
+[![Docker Pulls](https://img.shields.io/docker/pulls/skyshenma2024/novelvoice)](https://hub.docker.com/r/skyshenma2024/novelvoice)
+[![License](https://img.shields.io/github/license/skyshenma/NovelVoice)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+
 基于 Microsoft Edge TTS 的智能有声书生成工具,支持 TXT/EPUB 格式,提供现代化 Web 界面。
 
 ---
