@@ -255,332 +255,339 @@
                 </p>
             </div>
 
+            <!-- Advanced Settings (Bottom of sidebar) -->
+            <div class="pt-6 border-t border-gray-700 pb-6">
+                <button @click="showAdvanced = !showAdvanced"
+                    class="w-full flex items-center justify-between text-sm text-gray-400 hover:text-white transition-colors">
+                    <span class="flex items-center gap-2">
+                        <span>⚙️</span>
+                        <span>高级设置</span>
+                    </span>
+                    <span class="text-xs">{{ showAdvanced ? '▼' : '▶' }}</span>
+                </button>
+
+                <!-- Advanced Settings Panel -->
+                <div v-show="showAdvanced" class="mt-3 space-y-3 animate-fade-in">
+                    <!-- Max Retries -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">
+                            重试次数 (0-10)
+                        </label>
+                        <input type="number" v-model="maxRetries" min="0" max="10"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <!-- Timeout -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">
+                            超时时间 (10-120秒)
+                        </label>
+                        <input type="number" v-model="timeout" min="10" max="120"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <!-- Max Chars -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">
+                            最大字符数 (1000-20000)
+                        </label>
+                        <input type="number" v-model="maxChars" min="1000" max="20000" step="1000"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+            </div>
+
             <!-- Upload (Moved from bottom) -->
         </div>
 
-        <!-- Advanced Settings (Bottom of sidebar) -->
-        <div class="pt-6 border-t border-gray-700 pb-6">
-            <button @click="showAdvanced = !showAdvanced"
-                class="w-full flex items-center justify-between text-sm text-gray-400 hover:text-white transition-colors">
-                <span class="flex items-center gap-2">
-                    <span>⚙️</span>
-                    <span>高级设置</span>
-                </span>
-                <span class="text-xs">{{ showAdvanced ? '▼' : '▶' }}</span>
-            </button>
 
-            <!-- Advanced Settings Panel -->
-            <div v-show="showAdvanced" class="mt-3 space-y-3 animate-fade-in">
-                <!-- Max Retries -->
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">
-                        重试次数 (0-10)
-                    </label>
-                    <input type="number" v-model="maxRetries" min="0" max="10"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
 
-                <!-- Timeout -->
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">
-                        超时时间 (10-120秒)
-                    </label>
-                    <input type="number" v-model="timeout" min="10" max="120"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-gray-900 relative">
 
-                <!-- Max Chars -->
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">
-                        最大字符数 (1000-20000)
-                    </label>
-                    <input type="number" v-model="maxChars" min="1000" max="20000" step="1000"
-                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col h-full overflow-hidden bg-gray-900 relative">
-
-        <!-- LIST VIEW -->
-        <div v-if="viewMode === 'list'" class="flex-1 overflow-y-auto p-8">
-            <div class="max-w-4xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-100">书籍列表</h2>
-                    <button @click="fetchBooks" class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
-                        🔄 刷新
-                    </button>
-                </div>
-
-                <div class="grid gap-4">
-                    <div v-for="book in books" :key="book.name"
-                        class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-lg hover:border-gray-600 transition-all cursor-pointer group"
-                        @click="enterDetail(book)">
-
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3
-                                    class="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
-                                    {{ book.name }}</h3>
-                                <p class="text-xs text-gray-500 font-mono">{{ book.path }}</p>
-                            </div>
-                            <span :class="statusClass(book.status)"
-                                class="px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
-                                {{ book.status }}
-                            </span>
-                        </div>
-
-                        <!-- Progress -->
-                        <div class="mb-4">
-                            <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>{{ book.completed }} / {{ book.total }} 章节</span>
-                                <span>{{ progressPercent(book) }}%</span>
-                            </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                                <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                    :style="{ width: progressPercent(book) + '%' }"></div>
-                            </div>
-                        </div>
-
-                        <!-- Quick Start -->
-                        <div class="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2" @click.stop>
-                            <input type="text" v-model="quickRanges[book.name]" placeholder="范围 (如 1-10)"
-                                class="bg-gray-700 text-xs text-gray-200 px-2 py-1.5 rounded flex-1 outline-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 transition-colors">
-
-                            <button @click="handleQuickStart(book)" :disabled="book.status === 'processing'"
-                                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded transition-colors whitespace-nowrap">
-                                ▶️ 开始
-                            </button>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button class="mt-2 text-sm text-blue-400 hover:text-blue-300">
-                                进入详情 & 管理 >
-                            </button>
-                        </div>
+            <!-- LIST VIEW -->
+            <div v-if="viewMode === 'list'" class="flex-1 overflow-y-auto p-8">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-100">书籍列表</h2>
+                        <button @click="fetchBooks"
+                            class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+                            🔄 刷新
+                        </button>
                     </div>
 
-                    <div v-if="books.length === 0"
-                        class="text-center py-12 text-gray-500 bg-gray-800/50 rounded-lg border border-dashed border-gray-700">
-                        暂无书籍，请先上传
-                    </div>
-                </div>
-            </div>
-        </div>
+                    <div class="grid gap-4">
+                        <div v-for="book in books" :key="book.name"
+                            class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-lg hover:border-gray-600 transition-all cursor-pointer group"
+                            @click="enterDetail(book)">
 
-        <!-- DETAIL VIEW -->
-        <div v-else class="flex-1 flex flex-col h-full">
-            <!-- Header -->
-            <div class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
-                <div class="flex items-center gap-4">
-                    <button @click="viewMode = 'list'"
-                        class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700">
-                        ← 返回
-                    </button>
-                    <div>
-                        <h2 class="text-lg font-bold text-white">{{ currentBook.name }}</h2>
-                        <div class="text-xs text-gray-400 flex flex-wrap gap-4 items-center mt-1">
-                            <span>Total: {{ chapters.length }}</span>
-
-                            <!-- Selected Progress -->
-                            <div class="flex items-center gap-2" v-if="selectedChapters.size > 0">
-                                <span class="text-blue-400">Selected: {{ selectedChapters.size }}</span>
-                                <div class="w-16 bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                    <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                                        :style="{ width: selectedProgress + '%' }"></div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3
+                                        class="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                                        {{ book.name }}</h3>
+                                    <p class="text-xs text-gray-500 font-mono">{{ book.path }}</p>
                                 </div>
-                                <span class="text-blue-400">{{ selectedProgress }}%</span>
+                                <span :class="statusClass(book.status)"
+                                    class="px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
+                                    {{ book.status }}
+                                </span>
                             </div>
-                            <span v-else>Selected: 0</span>
 
-                            <span v-if="currentTaskStatus.is_running" class="text-green-400 flex items-center gap-1">
-                                <span class="animate-pulse">●</span> Running
-                            </span>
-                            <span v-else-if="currentTaskStatus.is_paused"
-                                class="text-yellow-400 flex items-center gap-1">
-                                <span>⏸</span> Paused
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <button @click="openFolder(currentBook.name)"
-                    class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-xs rounded transition-colors text-white">
-                    📂 打开文件夹
-                </button>
-            </div>
-
-            <!-- Sticky Control Bar -->
-            <div
-                class="bg-gray-800/90 backdrop-blur border-b border-gray-700 p-3 flex items-center gap-4 justify-between sticky top-0 z-10">
-                <div class="flex items-center gap-2">
-                    <label
-                        class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white select-none">
-                        <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"
-                            class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700">
-                        全选
-                    </label>
-                    <span class="h-4 w-px bg-gray-600 mx-2"></span>
-                    <button @click="deleteSelected"
-                        :disabled="selectedChapters.size === 0 || currentTaskStatus.is_running"
-                        class="text-xs text-red-400 hover:text-red-300 disabled:text-gray-600 px-2 py-1 rounded hover:bg-gray-700/50 transition-colors">
-                        🗑️ 清理选中
-                    </button>
-
-                    <!-- Range Selection -->
-                    <div
-                        class="flex items-center bg-gray-700/50 rounded overflow-hidden border border-gray-600 focus-within:ring-1 focus-within:ring-blue-500">
-                        <input type="text" v-model="rangeInput" placeholder="1-5,8" @keydown.enter="applyRangeSelection"
-                            class="w-20 bg-transparent text-xs text-gray-200 px-2 py-1 outline-none placeholder-gray-500">
-                        <button @click="applyRangeSelection"
-                            class="bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-1 text-xs border-l border-gray-600 transition-colors"
-                            title="应用范围">
-                            ✓
-                        </button>
-                    </div>
-
-                    <!-- Logs Toggle -->
-                    <button @click="showLogs = !showLogs"
-                        class="text-gray-400 hover:text-white p-2 rounded hover:bg-gray-700 transition-colors"
-                        title="查看日志">
-                        <span class="text-sm">📜</span>
-                    </button>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <!-- Start Button -->
-                    <button @click="startSelected" v-if="!currentTaskStatus.is_running && !currentTaskStatus.is_paused"
-                        :disabled="selectedChapters.size === 0"
-                        class="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                        <span>▶️</span> 开始生成 ({{ selectedChapters.size }})
-                    </button>
-
-                    <!-- Pause/Resume Controls -->
-                    <template v-else>
-                        <button @click="pauseTask" v-if="!currentTaskStatus.is_paused"
-                            class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                            <span>⏸</span> 暂停
-                        </button>
-                        <button @click="resumeTask" v-else
-                            class="px-6 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                            <span>▶️</span> 继续
-                        </button>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Chapter List -->
-            <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
-                <div class="space-y-1">
-                    <div v-for="chapter in chapters" :key="chapter.id"
-                        class="flex items-center gap-3 p-3 rounded hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-700 group"
-                        :class="{'bg-gray-800/50': selectedChapters.has(chapter.id)}">
-
-                        <input type="checkbox" :checked="selectedChapters.has(chapter.id)"
-                            @change="toggleChapter(chapter.id)"
-                            class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700 cursor-pointer">
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-gray-500 font-mono text-xs w-12 text-right">#{{ chapter.id
-                                    }}</span>
-                                <span class="text-sm text-gray-200 truncate font-medium">{{ chapter.title }}</span>
+                            <!-- Progress -->
+                            <div class="mb-4">
+                                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                    <span>{{ book.completed }} / {{ book.total }} 章节</span>
+                                    <span>{{ progressPercent(book) }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                        :style="{ width: progressPercent(book) + '%' }"></div>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2 ml-14 mt-1">
-                                <span class="text-xs text-gray-500">{{ chapter.length }} 字</span>
-                                <button @click.stop="previewChapter(chapter)"
-                                    class="text-xs text-blue-500 hover:text-blue-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="试听前20字">
-                                    🔊 试听
+
+                            <!-- Quick Start -->
+                            <div class="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2" @click.stop>
+                                <input type="text" v-model="quickRanges[book.name]" placeholder="范围 (如 1-10)"
+                                    class="bg-gray-700 text-xs text-gray-200 px-2 py-1.5 rounded flex-1 outline-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 transition-colors">
+
+                                <button @click="handleQuickStart(book)" :disabled="book.status === 'processing'"
+                                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded transition-colors whitespace-nowrap">
+                                    ▶️ 开始
+                                </button>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button class="mt-2 text-sm text-blue-400 hover:text-blue-300">
+                                    进入详情 & 管理 >
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Dynamic Status Icon -->
-                        <div class="w-24 text-right flex justify-end">
-                            <span v-if="chapter.status === 'completed'"
-                                class="text-green-500 flex items-center gap-1 text-xs">
-                                ✅ 已完成
-                            </span>
-                            <span v-else-if="chapter.status === 'failed'"
-                                class="text-red-500 flex items-center gap-1 text-xs">
-                                ❌ 失败
-                            </span>
-                            <span v-else-if="currentChapterIds.includes(chapter.title)"
-                                class="text-blue-400 flex items-center gap-1 text-xs animate-pulse">
-                                ⏳ 生成中...
-                            </span>
-                            <span v-else class="text-gray-600 text-xs">
-                                等待中
-                            </span>
+                        <div v-if="books.length === 0"
+                            class="text-center py-12 text-gray-500 bg-gray-800/50 rounded-lg border border-dashed border-gray-700">
+                            暂无书籍，请先上传
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-    </div>
+            <!-- DETAIL VIEW -->
+            <div v-else class="flex-1 flex flex-col h-full">
+                <!-- Header -->
+                <div class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
+                    <div class="flex items-center gap-4">
+                        <button @click="viewMode = 'list'"
+                            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700">
+                            ← 返回
+                        </button>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">{{ currentBook.name }}</h2>
+                            <div class="text-xs text-gray-400 flex flex-wrap gap-4 items-center mt-1">
+                                <span>Total: {{ chapters.length }}</span>
 
-    <!-- 版本更新弹窗 -->
-    <div v-if="showUpdateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        @click.self="showUpdateModal = false">
-        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-700 animate-fade-in">
-            <!-- 标题 -->
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <span class="text-2xl">🎉</span>
-                    <span>发现新版本</span>
-                </h3>
-                <button @click="showUpdateModal = false" class="text-gray-400 hover:text-white transition-colors">
-                    <span class="text-2xl">×</span>
-                </button>
-            </div>
+                                <!-- Selected Progress -->
+                                <div class="flex items-center gap-2" v-if="selectedChapters.size > 0">
+                                    <span class="text-blue-400">Selected: {{ selectedChapters.size }}</span>
+                                    <div class="w-16 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                                            :style="{ width: selectedProgress + '%' }"></div>
+                                    </div>
+                                    <span class="text-blue-400">{{ selectedProgress }}%</span>
+                                </div>
+                                <span v-else>Selected: 0</span>
 
-            <!-- 内容 -->
-            <div v-if="updateInfo" class="space-y-4">
-                <div class="bg-gray-900 rounded p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-sm">当前版本</span>
-                        <span class="text-white font-mono">{{ updateInfo.current_version }}</span>
+                                <span v-if="currentTaskStatus.is_running"
+                                    class="text-green-400 flex items-center gap-1">
+                                    <span class="animate-pulse">●</span> Running
+                                </span>
+                                <span v-else-if="currentTaskStatus.is_paused"
+                                    class="text-yellow-400 flex items-center gap-1">
+                                    <span>⏸</span> Paused
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-center my-2">
-                        <span class="text-green-400 text-2xl">↓</span>
+
+                    <button @click="openFolder(currentBook.name)"
+                        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-xs rounded transition-colors text-white">
+                        📂 打开文件夹
+                    </button>
+                </div>
+
+                <!-- Sticky Control Bar -->
+                <div
+                    class="bg-gray-800/90 backdrop-blur border-b border-gray-700 p-3 flex items-center gap-4 justify-between sticky top-0 z-10">
+                    <div class="flex items-center gap-2">
+                        <label
+                            class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white select-none">
+                            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"
+                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700">
+                            全选
+                        </label>
+                        <span class="h-4 w-px bg-gray-600 mx-2"></span>
+                        <button @click="deleteSelected"
+                            :disabled="selectedChapters.size === 0 || currentTaskStatus.is_running"
+                            class="text-xs text-red-400 hover:text-red-300 disabled:text-gray-600 px-2 py-1 rounded hover:bg-gray-700/50 transition-colors">
+                            🗑️ 清理选中
+                        </button>
+
+                        <!-- Range Selection -->
+                        <div
+                            class="flex items-center bg-gray-700/50 rounded overflow-hidden border border-gray-600 focus-within:ring-1 focus-within:ring-blue-500">
+                            <input type="text" v-model="rangeInput" placeholder="1-5,8"
+                                @keydown.enter="applyRangeSelection"
+                                class="w-20 bg-transparent text-xs text-gray-200 px-2 py-1 outline-none placeholder-gray-500">
+                            <button @click="applyRangeSelection"
+                                class="bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-1 text-xs border-l border-gray-600 transition-colors"
+                                title="应用范围">
+                                ✓
+                            </button>
+                        </div>
+
+                        <!-- Logs Toggle -->
+                        <button @click="showLogs = !showLogs"
+                            class="text-gray-400 hover:text-white p-2 rounded hover:bg-gray-700 transition-colors"
+                            title="查看日志">
+                            <span class="text-sm">📜</span>
+                        </button>
                     </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-400 text-sm">最新版本</span>
-                        <span class="text-green-400 font-mono font-bold">{{ updateInfo.latest_version }}</span>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Start Button -->
+                        <button @click="startSelected"
+                            v-if="!currentTaskStatus.is_running && !currentTaskStatus.is_paused"
+                            :disabled="selectedChapters.size === 0"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                            <span>▶️</span> 开始生成 ({{ selectedChapters.size }})
+                        </button>
+
+                        <!-- Pause/Resume Controls -->
+                        <template v-else>
+                            <button @click="pauseTask" v-if="!currentTaskStatus.is_paused"
+                                class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                                <span>⏸</span> 暂停
+                            </button>
+                            <button @click="resumeTask" v-else
+                                class="px-6 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                                <span>▶️</span> 继续
+                            </button>
+                        </template>
                     </div>
                 </div>
 
-                <p class="text-gray-300 text-sm">
-                    <span class="font-semibold">{{ updateInfo.package }}</span>
-                    有新版本可用,建议更新以获得最新功能和修复。
-                </p>
+                <!-- Chapter List -->
+                <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
+                    <div class="space-y-1">
+                        <div v-for="chapter in chapters" :key="chapter.id"
+                            class="flex items-center gap-3 p-3 rounded hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-700 group"
+                            :class="{'bg-gray-800/50': selectedChapters.has(chapter.id)}">
 
-                <!-- 更新命令 -->
-                <div class="bg-gray-900 rounded p-3">
-                    <p class="text-xs text-gray-400 mb-2">更新命令:</p>
-                    <code class="text-green-400 text-sm font-mono">
-                            pip install --upgrade {{ updateInfo.package }}
-                        </code>
+                            <input type="checkbox" :checked="selectedChapters.has(chapter.id)"
+                                @change="toggleChapter(chapter.id)"
+                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700 cursor-pointer">
+
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-500 font-mono text-xs w-12 text-right">#{{ chapter.id
+                                        }}</span>
+                                    <span class="text-sm text-gray-200 truncate font-medium">{{ chapter.title }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 ml-14 mt-1">
+                                    <span class="text-xs text-gray-500">{{ chapter.length }} 字</span>
+                                    <button @click.stop="previewChapter(chapter)"
+                                        class="text-xs text-blue-500 hover:text-blue-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="试听前20字">
+                                        🔊 试听
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Status Icon -->
+                            <div class="w-24 text-right flex justify-end">
+                                <span v-if="chapter.status === 'completed'"
+                                    class="text-green-500 flex items-center gap-1 text-xs">
+                                    ✅ 已完成
+                                </span>
+                                <span v-else-if="chapter.status === 'failed'"
+                                    class="text-red-500 flex items-center gap-1 text-xs">
+                                    ❌ 失败
+                                </span>
+                                <span v-else-if="currentChapterIds.includes(chapter.title)"
+                                    class="text-blue-400 flex items-center gap-1 text-xs animate-pulse">
+                                    ⏳ 生成中...
+                                </span>
+                                <span v-else class="text-gray-600 text-xs">
+                                    等待中
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 按钮 -->
-            <div class="flex gap-3 mt-6">
-                <button @click="dismissUpdate"
-                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors">
-                    稍后提醒
-                </button>
-                <a v-if="updateInfo" :href="`https://pypi.org/project/${updateInfo.package}/`" target="_blank"
-                    class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded text-center transition-colors">
-                    查看详情
-                </a>
+            <!-- 版本更新弹窗 -->
+            <div v-if="showUpdateModal"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                @click.self="showUpdateModal = false">
+                <div
+                    class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-700 animate-fade-in">
+                    <!-- 标题 -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="text-2xl">🎉</span>
+                            <span>发现新版本</span>
+                        </h3>
+                        <button @click="showUpdateModal = false"
+                            class="text-gray-400 hover:text-white transition-colors">
+                            <span class="text-2xl">×</span>
+                        </button>
+                    </div>
+
+                    <!-- 内容 -->
+                    <div v-if="updateInfo" class="space-y-4">
+                        <div class="bg-gray-900 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-gray-400 text-sm">当前版本</span>
+                                <span class="text-white font-mono">{{ updateInfo.current_version }}</span>
+                            </div>
+                            <div class="flex items-center justify-center my-2">
+                                <span class="text-green-400 text-2xl">↓</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 text-sm">最新版本</span>
+                                <span class="text-green-400 font-mono font-bold">{{ updateInfo.latest_version }}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-gray-300 text-sm">
+                            <span class="font-semibold">{{ updateInfo.package }}</span>
+                            有新版本可用,建议更新以获得最新功能和修复。
+                        </p>
+
+                        <!-- 更新命令 -->
+                        <div class="bg-gray-900 rounded p-3">
+                            <p class="text-xs text-gray-400 mb-2">更新命令:</p>
+                            <code class="text-green-400 text-sm font-mono">
+                        pip install --upgrade {{ updateInfo.package }}
+                    </code>
+                        </div>
+                    </div>
+
+                    <!-- 按钮 -->
+                    <div class="flex gap-3 mt-6">
+                        <button @click="dismissUpdate"
+                            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors">
+                            稍后提醒
+                        </button>
+                        <a v-if="updateInfo" :href="`https://pypi.org/project/${updateInfo.package}/`" target="_blank"
+                            class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded text-center transition-colors">
+                            查看详情
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
     </div>
 
     <script>
@@ -654,7 +661,10 @@
                     // Let's reset pitch/rate/volume only as they are the main "config" params
                 };
 
-                const reloadConfig = async () => {
+                const reloadConfig = async (silent = false) => {
+                    // Normalize silent param (click event passes object)
+                    const isSilent = silent === true;
+
                     if (reloadingConfig.value) return;
 
                     reloadingConfig.value = true;
@@ -729,7 +739,9 @@
                             lastReloadTime.value = new Date().toLocaleTimeString('zh-CN');
 
                             // 显示成功提示
-                            alert('✅ ' + (res.data.message || '配置已从磁盘同步成功'));
+                            if (!isSilent) {
+                                alert('✅ ' + (res.data.message || '配置已从磁盘同步成功'));
+                            }
 
                             // 如果有变更,在控制台显示
                             if (res.data.changes && Object.keys(res.data.changes).length > 0) {
@@ -739,7 +751,11 @@
                     } catch (error) {
                         console.error('[NovelVoice] Config reload failed:', error);
                         const message = error.response?.data?.detail || '配置重载失败';
-                        alert('❌ ' + message);
+                        if (!isSilent) {
+                            alert('❌ ' + message);
+                        } else {
+                            console.error('Initial config reload failed:', message);
+                        }
                     } finally {
                         reloadingConfig.value = false;
                     }
@@ -1242,46 +1258,14 @@
                         updateInfo.value = null;
                     } catch (e) {
                         console.error('忽略更新失败:', e);
+                    } finally {
+                        showUpdateModal.value = false;
                     }
                 };
 
-                const loadConfigFromBackend = async () => {
-                    try {
-                        const res = await api.get('/config');
-                        if (res.data.success && res.data.config) {
-                            const cfg = res.data.config;
 
-                            // TTS 配置
-                            if (cfg.tts) {
-                                if (cfg.tts.default_voice) config.value.voice = cfg.tts.default_voice;
-                                if (cfg.tts.default_rate) {
-                                    rateVal.value = parseInt(cfg.tts.default_rate.replace('%', '').replace('+', ''));
-                                }
-                                if (cfg.tts.default_volume) {
-                                    volumeVal.value = parseInt(cfg.tts.default_volume.replace('%', '').replace('+', ''));
-                                }
-                                if (cfg.tts.default_pitch) {
-                                    pitchVal.value = parseInt(cfg.tts.default_pitch.replace('Hz', '').replace('+', ''));
-                                }
-                                if (cfg.tts.concurrency_limit) concurrency.value = cfg.tts.concurrency_limit;
-                                if (cfg.tts.max_retries) maxRetries.value = cfg.tts.max_retries;
-                                if (cfg.tts.timeout) timeout.value = cfg.tts.timeout;
-                                if (cfg.tts.max_chars) maxChars.value = cfg.tts.max_chars;
-                            }
+                // loadConfigFromBackend removed - replaced by reloadConfig(true) on startup
 
-                            // Bark 配置
-                            if (cfg.bark) {
-                                if (cfg.bark.server_url) barkConfig.value.serverUrl = cfg.bark.server_url;
-                                if (cfg.bark.api_key) barkConfig.value.apiKey = cfg.bark.api_key;
-                                if (cfg.bark.enabled !== undefined) barkConfig.value.enabled = cfg.bark.enabled;
-                            }
-
-                            console.log('✅ 配置已从后端加载');
-                        }
-                    } catch (e) {
-                        console.error('加载配置失败:', e);
-                    }
-                };
 
                 const saveAsDefault = async () => {
                     if (!confirm('确定将当前设置保存为默认配置吗?\n\n保存后,下次启动应用将使用这些参数作为默认值。')) {
@@ -1311,6 +1295,12 @@
                         const res = await api.post('/config', payload);
 
                         if (res.data.success) {
+                            // 强制重载配置以确保后端内存同步
+                            try {
+                                await api.post('/config/reload');
+                            } catch (e) {
+                                console.error("Auto reload failed", e);
+                            }
                             alert('✅ 配置已保存!\n\n' + res.data.message);
                         } else {
                             alert('❌ 保存失败: ' + (res.data.message || '未知错误'));
@@ -1351,9 +1341,11 @@
                 };
 
                 onMounted(async () => {
-                    await loadConfigFromBackend();
+                    // Force reload config from disk on startup to ensure fresh state
+                    await reloadConfig(true);
                     await fetchBooks();
-                    await fetchVoices();
+                    // fetchVoices removed - reloadConfig handles voice list update
+
                     startPolling();
 
                     // 延迟检查版本更新
@@ -1387,7 +1379,7 @@
                     resetConfig, reloadConfig,
                     testVoice, previewChapter, testCustomVoice, setRandomText,
                     downloadZip, mergeAudio, openFolder,
-                    testBarkNotification, saveAsDefault, loadConfigFromBackend,
+                    testBarkNotification, saveAsDefault,
                     checkVersion, dismissUpdate,
                     statusClass, progressPercent
                 };

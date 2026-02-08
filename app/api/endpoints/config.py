@@ -96,7 +96,6 @@ async def get_current_config():
     """
     try:
         config = get_config()
-        
         return {
             "success": True,
             "config": {
