@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  novelvoice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: novelvoice:latest
+    container_name: novelvoice
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Data persistence
+      - ./data:/data
+      # Config file (optional, for easy editing)
+      - ./data/config/config.yml:/data/config/config.yml
+
+    # Load environment variables from .env file (if exists)
+    env_file:
+      - .env
+
+    environment:
+      # Application settings
+      - NOVELVOICE_DATA_DIR=/data
+      - NOVELVOICE_HOST=0.0.0.0
+      - NOVELVOICE_PORT=8000
+      # Optional: Override config values
+      # - NOVELVOICE_TTS_VOICE=zh-CN-XiaoxiaoNeural
+      # - NOVELVOICE_TTS_CONCURRENCY=2
+      # - NOVELVOICE_TTS_MAX_RETRIES=3
+      # - NOVELVOICE_BARK_ENABLED=false
+      # - NOVELVOICE_BARK_API_KEY=your_key_here
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/books" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Optional: Named volumes for better management
+# volumes:
+#   novelvoice-data:
+#     driver: local

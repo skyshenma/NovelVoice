@@ -1,0 +1,26 @@
+# ==================== NovelVoice 依赖清单 ====================
+# 核心语音合成引擎 / Core TTS Engine
+edge-tts==7.2.7             # Microsoft Edge TTS / 微软 Edge 文本转语音
+
+# Web 框架 / Web Framework
+fastapi==0.128.4            # Modern web framework / 现代 Web 框架
+uvicorn==0.40.0             # ASGI server / ASGI 服务器
+python-multipart==0.0.22    # File upload support / 文件上传支持
+
+# 数据模型 / Data Models
+pydantic==2.12.5            # Data validation / 数据验证与序列化
+
+# 文件处理 / File Processing
+ebooklib==0.20              # EPUB parser / EPUB 电子书解析
+beautifulsoup4==4.14.3      # HTML/XML parser / HTML/XML 解析器
+chardet==5.2.0              # Encoding detection / 字符编码检测
+
+# 异步 I/O / Async I/O
+aiofiles==25.1.0            # Async file operations / 异步文件操作
+aiohttp==3.13.3             # HTTP client / HTTP 客户端 (Bark 推送 & 版本检查)
+
+# 配置管理 / Configuration
+pyyaml==6.0.3               # YAML config parser / YAML 配置文件解析
+
+# 版本检查 / Version Check
+packaging==26.0             # Version comparison / 版本号比较
