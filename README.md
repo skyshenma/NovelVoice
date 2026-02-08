@@ -13,7 +13,7 @@
 ## ✨ 特性
 
 - 🎙️ **高质量语音合成** - 基于 Microsoft Edge TTS,支持 31 种语音(中文、英语、日语)
-- 📚 **多格式支持** - TXT/EPUB 文件自动解析和章节识别
+- 📚 **多格式支持** - 智能解析 TXT/EPUB (优先读取 Spine/TOC 结构)
 - 🌐 **现代 Web 界面** - 美观易用的单页应用
 - ⚡ **并发处理** - 多章节并行合成,提升效率
 - 🔄 **自动重试** - 网络异常自动重试,确保稳定性
@@ -271,7 +271,7 @@ docker-compose down
 - **后端**: FastAPI + Uvicorn
 - **前端**: Vue 3 + TailwindCSS
 - **TTS**: Microsoft Edge TTS
-- **文件处理**: ebooklib + BeautifulSoup4
+- **文件处理**: ebooklib + BeautifulSoup4 + natsort (智能自然排序)
 - **容器化**: Docker + Docker Compose
 
 ---

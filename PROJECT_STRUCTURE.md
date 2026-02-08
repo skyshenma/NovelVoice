@@ -36,7 +36,13 @@ NovelVoice/
 │   │   └── config.py           # 配置数据模型
 │   │
 │   └── services/               # 业务逻辑
-│       ├── book_manager.py     # 书籍管理
+│       ├── parsers/        # 书籍解析器 ⭐
+│       │   ├── factory.py  # 解析器工厂
+│       │   ├── epub.py     # EPUB 解析 (Spine/TOC)
+│       │   ├── txt.py      # TXT 解析 (正则)
+│       │   └── base.py     # 解析器基类
+│       │
+│       ├── book_manager.py     # 书籍管理 (调用 Parsers)
 │       ├── tts_engine.py       # TTS 引擎
 │       ├── notifier.py         # Bark 通知
 │       └── version_checker.py  # 版本检查服务 ⭐

@@ -7,6 +7,12 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.1.0] - 2026-02-08
+
+
+### 优化
+- 重构 EPUB 解析逻辑：优先使用结构化元数据 (Spine/TOC)，修复章节乱序和层级丢失问题
+- 引入 ParserFactory 模式，分离不同格式的解析逻辑
 
 ### 修复
 - 修复配置在后端未开启热重载时无法持久化的问题 (通过前端强制重载实现)
@@ -71,5 +77,6 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ---
 
-[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.0.0...HEAD
+[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.0
 [1.0.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.0.0

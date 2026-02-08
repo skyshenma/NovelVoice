@@ -24,3 +24,4 @@ pyyaml==6.0.3               # YAML config parser / YAML 配置文件解析
 
 # 版本检查 / Version Check
 packaging==26.0             # Version comparison / 版本号比较
+natsort==8.4.0              # Natural sorting for chapters
