@@ -409,9 +409,9 @@
                         </div>
                     </div>
 
-                    <button @click="openFolder(currentBook.name)"
+                    <button @click="openFileManager(currentBook.name)"
                         class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-xs rounded transition-colors text-white">
-                        📂 打开文件夹
+                        📂 文件管理
                     </button>
                 </div>
 
@@ -431,6 +431,32 @@
                             class="text-xs text-red-400 hover:text-red-300 disabled:text-gray-600 px-2 py-1 rounded hover:bg-gray-700/50 transition-colors">
                             🗑️ 清理选中
                         </button>
+
+                        <span class="h-4 w-px bg-gray-600 mx-2"></span>
+
+                        <!-- Filter Buttons -->
+                        <div class="flex items-center gap-1 bg-gray-700/50 rounded p-1">
+                            <button @click="chapterFilter = 'all'"
+                                :class="chapterFilter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'"
+                                class="px-2 py-1 text-xs rounded transition-colors whitespace-nowrap">
+                                全部 ({{ chapters.length }})
+                            </button>
+                            <button @click="chapterFilter = 'completed'"
+                                :class="chapterFilter === 'completed' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'"
+                                class="px-2 py-1 text-xs rounded transition-colors whitespace-nowrap">
+                                ✅ 已完成 ({{ completedCount }})
+                            </button>
+                            <button @click="chapterFilter = 'failed'"
+                                :class="chapterFilter === 'failed' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'"
+                                class="px-2 py-1 text-xs rounded transition-colors whitespace-nowrap">
+                                ❌ 失败 ({{ failedCount }})
+                            </button>
+                            <button @click="chapterFilter = 'pending'"
+                                :class="chapterFilter === 'pending' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'"
+                                class="px-2 py-1 text-xs rounded transition-colors whitespace-nowrap">
+                                ⏳ 等待中 ({{ pendingCount }})
+                            </button>
+                        </div>
 
                         <!-- Range Selection -->
                         <div
@@ -479,7 +505,7 @@
                 <!-- Chapter List -->
                 <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
                     <div class="space-y-1">
-                        <div v-for="chapter in chapters" :key="chapter.id"
+                        <div v-for="chapter in filteredChapters" :key="chapter.id"
                             class="flex items-center gap-3 p-3 rounded hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-700 group"
                             :class="{'bg-gray-800/50': selectedChapters.has(chapter.id)}">
 
@@ -587,6 +613,98 @@
                     </div>
                 </div>
             </div>
+
+            <!-- File Manager Modal -->
+            <div v-if="showFileManager"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                @click.self="showFileManager = false">
+                <div class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <span>📂</span>
+                                <span>文件管理</span>
+                            </h3>
+                            <p class="text-sm text-gray-400 mt-1">
+                                {{ audioFiles.length }} 个文件
+                                <span v-if="selectedFiles.size > 0"> · 已选中 {{ selectedFiles.size }} 个</span>
+                            </p>
+                        </div>
+                        <button @click="showFileManager = false"
+                            class="text-gray-400 hover:text-white transition-colors">
+                            <span class="text-2xl">×</span>
+                        </button>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="p-4 border-b border-gray-700 bg-gray-900/50">
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" :checked="isAllFilesSelected" @change="toggleSelectAllFiles"
+                                    class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600">
+                                <span class="text-sm text-gray-300">全选</span>
+                            </label>
+                            <div class="flex-1 flex items-center gap-2">
+                                <span class="text-sm text-gray-400">范围:</span>
+                                <input v-model="fileRangeInput" @keyup.enter="applyFileRange" type="text"
+                                    placeholder="1-5,8"
+                                    class="flex-1 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                                <button @click="applyFileRange"
+                                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors">
+                                    应用
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File List -->
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <div v-if="filteredAudioFiles.length === 0" class="text-center text-gray-400 py-8">
+                            <p>暂无音频文件</p>
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div v-for="file in filteredAudioFiles" :key="file.id"
+                                class="flex items-center gap-3 p-3 bg-gray-700/50 hover:bg-gray-700 rounded transition-colors">
+                                <input type="checkbox" :checked="selectedFiles.has(file.id)"
+                                    @change="toggleFileSelection(file.id)"
+                                    class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-white truncate">{{ file.filename }}</p>
+                                    <p class="text-xs text-gray-400 mt-1">{{ formatFileSize(file.size) }}</p>
+                                </div>
+                                <button @click="downloadFile(currentBook.name, file.id, file.filename)"
+                                    class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors flex items-center gap-1">
+                                    <span>⬇</span>
+                                    <span>下载</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="p-4 border-t border-gray-700 bg-gray-900/50">
+                        <div class="flex items-center gap-3 justify-end">
+                            <button @click="downloadZip"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors flex items-center gap-2">
+                                <span>📦</span>
+                                <span>下载全部 (ZIP)</span>
+                            </button>
+                            <button @click="downloadSelectedZip" :disabled="selectedFiles.size === 0"
+                                :class="selectedFiles.size === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                                class="px-4 py-2 bg-green-600 text-white text-sm rounded transition-colors flex items-center gap-2">
+                                <span>📦</span>
+                                <span>下载选中 (ZIP)</span>
+                            </button>
+                            <button @click="mergeAudio"
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex items-center gap-2">
+                                <span>🔗</span>
+                                <span>合并音频</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -647,6 +765,15 @@
                 // Version Check
                 const updateInfo = ref(null);
                 const showUpdateModal = ref(false);
+
+                // Chapter Filter
+                const chapterFilter = ref('all'); // 'all' | 'completed' | 'failed' | 'pending'
+
+                // File Manager
+                const showFileManager = ref(false);
+                const audioFiles = ref([]);
+                const selectedFiles = ref(new Set());
+                const fileRangeInput = ref('');
 
                 // Computed
                 watch(rateVal, (val) => config.value.rate = (val >= 0 ? "+" : "") + val + "%"); // Explicitly append % for display/logic if needed, though input handles number
@@ -762,7 +889,7 @@
                 };
 
                 const isAllSelected = computed(() => {
-                    return chapters.value.length > 0 && selectedChapters.value.size === chapters.value.length;
+                    return filteredChapters.value.length > 0 && filteredChapters.value.every(c => selectedChapters.value.has(c.id));
                 });
 
                 const selectedProgress = computed(() => {
@@ -770,6 +897,38 @@
                     const completed = chapters.value.filter(c => selectedChapters.value.has(c.id) && c.status === 'completed').length;
                     return Math.round((completed / selectedChapters.value.size) * 100);
                 });
+
+                // Filtered chapters based on current filter
+                const filteredChapters = computed(() => {
+                    if (chapterFilter.value === 'all') {
+                        return chapters.value;
+                    }
+                    return chapters.value.filter(chapter => {
+                        switch (chapterFilter.value) {
+                            case 'completed':
+                                return chapter.status === 'completed';
+                            case 'failed':
+                                return chapter.status === 'failed';
+                            case 'pending':
+                                return !chapter.status || chapter.status === 'pending';
+                            default:
+                                return true;
+                        }
+                    });
+                });
+
+                // Chapter counts by status
+                const completedCount = computed(() =>
+                    chapters.value.filter(c => c.status === 'completed').length
+                );
+
+                const failedCount = computed(() =>
+                    chapters.value.filter(c => c.status === 'failed').length
+                );
+
+                const pendingCount = computed(() =>
+                    chapters.value.filter(c => !c.status || c.status === 'pending').length
+                );
 
                 // API
                 const api = axios.create({ baseURL: '/api' });
@@ -824,9 +983,11 @@
 
                 const toggleSelectAll = () => {
                     if (isAllSelected.value) {
-                        selectedChapters.value.clear();
+                        // Deselect all filtered chapters
+                        filteredChapters.value.forEach(c => selectedChapters.value.delete(c.id));
                     } else {
-                        chapters.value.forEach(c => selectedChapters.value.add(c.id));
+                        // Select all filtered chapters
+                        filteredChapters.value.forEach(c => selectedChapters.value.add(c.id));
                     }
                 };
 
@@ -1018,10 +1179,83 @@
                 const handleFileSelect = (e) => handleUpload(e.target.files[0]);
                 const handleDrop = (e) => handleUpload(e.dataTransfer.files[0]);
 
-                // --- Helpers ---
-                const openFolder = async (bookName) => {
-                    await api.post(`/open_folder?book_name=${encodeURIComponent(bookName)}`);
+                // --- File Manager ---
+                const openFileManager = async (bookName) => {
+                    showFileManager.value = true;
+                    await fetchAudioFiles(bookName);
                 };
+
+                const fetchAudioFiles = async (bookName) => {
+                    try {
+                        const response = await api.get(`/files/${encodeURIComponent(bookName)}`);
+                        audioFiles.value = response.data;
+                        selectedFiles.value = new Set();
+                        fileRangeInput.value = '';
+                    } catch (error) {
+                        console.error('Failed to fetch audio files:', error);
+                        alert('获取文件列表失败');
+                    }
+                };
+
+                const downloadFile = (bookName, fileId, filename) => {
+                    window.open(`/api/file/${encodeURIComponent(bookName)}/${fileId}`, '_blank');
+                };
+
+                const downloadSelectedZip = () => {
+                    if (selectedFiles.value.size === 0) {
+                        alert('请先选择要下载的文件');
+                        return;
+                    }
+                    downloadZip();
+                };
+
+                const toggleFileSelection = (fileId) => {
+                    if (selectedFiles.value.has(fileId)) {
+                        selectedFiles.value.delete(fileId);
+                    } else {
+                        selectedFiles.value.add(fileId);
+                    }
+                };
+
+                const applyFileRange = () => {
+                    if (!fileRangeInput.value.trim()) {
+                        selectedFiles.value = new Set();
+                        return;
+                    }
+
+                    const ids = parseRangeInput(fileRangeInput.value);
+                    selectedFiles.value = new Set(ids.filter(id =>
+                        audioFiles.value.some(f => f.id === id)
+                    ));
+                };
+
+                const filteredAudioFiles = computed(() => {
+                    if (!fileRangeInput.value.trim()) {
+                        return audioFiles.value;
+                    }
+                    const ids = parseRangeInput(fileRangeInput.value);
+                    return audioFiles.value.filter(f => ids.includes(f.id));
+                });
+
+                const isAllFilesSelected = computed(() => {
+                    return filteredAudioFiles.value.length > 0 &&
+                        filteredAudioFiles.value.every(f => selectedFiles.value.has(f.id));
+                });
+
+                const toggleSelectAllFiles = () => {
+                    if (isAllFilesSelected.value) {
+                        filteredAudioFiles.value.forEach(f => selectedFiles.value.delete(f.id));
+                    } else {
+                        filteredAudioFiles.value.forEach(f => selectedFiles.value.add(f.id));
+                    }
+                };
+
+                const formatFileSize = (bytes) => {
+                    if (bytes < 1024) return bytes + ' B';
+                    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+                    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+                };
+
 
                 // Audio Features
                 const downloadZip = () => {
@@ -1369,6 +1603,10 @@
                     isAllSelected, rangeInput, quickRanges,
                     showLogs, logs, logContainer,
                     customText, customPreviewing, defaultCustomPlaceholder, previewing,
+                    chapterFilter, filteredChapters,
+                    completedCount, failedCount, pendingCount,
+                    showFileManager, audioFiles, selectedFiles, fileRangeInput,
+                    filteredAudioFiles, isAllFilesSelected,
 
                     // Methods
                     fetchBooks, fetchVoices, updateConcurrency, fetchLogs,
@@ -1378,7 +1616,9 @@
                     deleteSelected, startSelected, pauseTask, resumeTask,
                     resetConfig, reloadConfig,
                     testVoice, previewChapter, testCustomVoice, setRandomText,
-                    downloadZip, mergeAudio, openFolder,
+                    downloadZip, mergeAudio, openFileManager,
+                    fetchAudioFiles, downloadFile, downloadSelectedZip,
+                    toggleFileSelection, applyFileRange, toggleSelectAllFiles, formatFileSize,
                     testBarkNotification, saveAsDefault,
                     checkVersion, dismissUpdate,
                     statusClass, progressPercent

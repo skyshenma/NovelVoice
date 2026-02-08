@@ -169,6 +169,51 @@ async def open_folder_api(book_name: str = Query(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/files/{book_name}")
+async def list_audio_files(book_name: str):
+    """获取书籍的所有音频文件列表"""
+    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    if not book_dir.exists():
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    files = []
+    for mp3_file in sorted(book_dir.glob("*.mp3")):
+        try:
+            # 解析文件名: 0001-章节标题.mp3
+            parts = mp3_file.name.split('-', 1)
+            if len(parts) >= 1:
+                file_id = int(parts[0])
+                file_size = mp3_file.stat().st_size
+                
+                files.append({
+                    "id": file_id,
+                    "filename": mp3_file.name,
+                    "size": file_size,
+                    "path": mp3_file.name
+                })
+        except (ValueError, IndexError):
+            # Skip files that don't match the expected format
+            continue
+    
+    return files
+
+@router.get("/file/{book_name}/{file_id}")
+async def download_single_file(book_name: str, file_id: int):
+    """下载单个音频文件"""
+    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    if not book_dir.exists():
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # 查找匹配的文件
+    for mp3_file in book_dir.glob(f"{file_id:04d}-*.mp3"):
+        return FileResponse(
+            mp3_file,
+            filename=mp3_file.name,
+            media_type="audio/mpeg"
+        )
+    
+    raise HTTPException(status_code=404, detail="File not found")
+
 @router.get("/download/{book_name}")
 async def download_book_audio(book_name: str):
     """打包下载音频"""
