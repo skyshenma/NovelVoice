@@ -87,10 +87,10 @@ class ConfigLoader:
             "voices": [
                 # 中国大陆 (普通话)
                 {"short_name": "zh-CN-XiaoxiaoNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Female", "gender_cn": "女", "style": "温暖", "name": "xiaoxiao", "description": "[温暖] 普通话 - 中国大陆 - 女 - xiaoxiao"},
-                {"short_name": "zh-CN-XiaoyiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Female", "gender_cn": "女", "style": "通用", "name": "xiaoyi", "description": "[通用] 普通话 - 中国大陆 - 女 - xiaoyi"},
-                {"short_name": "zh-CN-YunjianNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunjian", "description": "[通用] 普通话 - 中国大陆 - 男 - yunjian"},
-                {"short_name": "zh-CN-YunxiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunxi", "description": "[通用] 普通话 - 中国大陆 - 男 - yunxi"},
-                {"short_name": "zh-CN-YunxiaNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunxia", "description": "[通用] 普通话 - 中国大陆 - 男 - yunxia"},
+                {"short_name": "zh-CN-XiaoyiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Female", "gender_cn": "女", "style": "甜美", "name": "xiaoyi", "description": "[甜美] 普通话 - 中国大陆 - 女 - xiaoyi"},
+                {"short_name": "zh-CN-YunjianNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "热情", "name": "yunjian", "description": "[热情] 普通话 - 中国大陆 - 男 - yunjian"},
+                {"short_name": "zh-CN-YunxiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "稳重", "name": "yunxi", "description": "[稳重] 普通话 - 中国大陆 - 男 - yunxi"},
+                {"short_name": "zh-CN-YunxiaNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "可爱", "name": "yunxia", "description": "[可爱] 普通话 - 中国大陆 - 男 - yunxia"},
                 {"short_name": "zh-CN-YunyangNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "专业", "name": "yunyang", "description": "[专业] 普通话 - 中国大陆 - 男 - yunyang"},
                 # 中国方言
                 {"short_name": "zh-CN-liaoning-XiaobeiNeural", "locale": "zh-CN-liaoning", "language": "东北官话", "region": "中国辽宁", "gender": "Female", "gender_cn": "女", "style": "幽默", "name": "xiaobei", "description": "[幽默] 东北官话 - 中国辽宁 - 女 - xiaobei"},
