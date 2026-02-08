@@ -5,15 +5,22 @@ set -e
 
 echo "🚀 Starting NovelVoice..."
 
-# Check if config file exists, if not copy from example
-if [ ! -f "/data/config/config.yml" ]; then
-    echo "📝 Config file not found, creating from example..."
-    cp /app/data/config/config.example.yml /data/config/config.yml
-    echo "✅ Config file created at /data/config/config.yml"
-fi
-
 # Create necessary directories
-mkdir -p /data/app /data/cache
+echo "📁 Creating data directories..."
+mkdir -p /data/app /data/cache /data/config
+
+# Copy example config if config.yml doesn't exist
+if [ ! -f "/data/config/config.yml" ]; then
+    echo "⚠️  Config file not found, creating from example..."
+    if [ -f "/app/data/config/config.example.yml" ]; then
+        cp /app/data/config/config.example.yml /data/config/config.yml
+        echo "✅ Config file created from example"
+    else
+        echo "⚠️  Example config not found, will use default config"
+    fi
+else
+    echo "✅ Config file found"
+fi
 
 # Set permissions
 chmod -R 755 /data
