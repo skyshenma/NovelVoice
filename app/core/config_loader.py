@@ -85,15 +85,45 @@ class ConfigLoader:
                 "web_base_url": "http://localhost:8000"
             },
             "voices": [
-                {"short_name": "zh-CN-XiaoxiaoNeural", "gender": "Female", "style": "温暖"},
-                {"short_name": "zh-CN-YunxiNeural", "gender": "Male", "style": "稳重"},
-                {"short_name": "zh-CN-YunjianNeural", "gender": "Male", "style": "运动"},
-                {"short_name": "zh-CN-XiaoyiNeural", "gender": "Female", "style": "可爱"},
-                {"short_name": "zh-CN-YunyangNeural", "gender": "Male", "style": "新闻"},
-                {"short_name": "zh-CN-Liaoning-XiaobeiNeural", "gender": "Female", "style": "东北话"},
-                {"short_name": "zh-CN-Shaanxi-XiaoniNeural", "gender": "Female", "style": "陕西话"},
-                {"short_name": "zh-HK-HiuMaanNeural", "gender": "Female", "style": "粤语"},
-                {"short_name": "zh-TW-HsiaoChenNeural", "gender": "Female", "style": "台湾"}
+                # 中国大陆 (普通话)
+                {"short_name": "zh-CN-XiaoxiaoNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Female", "gender_cn": "女", "style": "温暖", "name": "xiaoxiao", "description": "[温暖] 普通话 - 中国大陆 - 女 - xiaoxiao"},
+                {"short_name": "zh-CN-XiaoyiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Female", "gender_cn": "女", "style": "通用", "name": "xiaoyi", "description": "[通用] 普通话 - 中国大陆 - 女 - xiaoyi"},
+                {"short_name": "zh-CN-YunjianNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunjian", "description": "[通用] 普通话 - 中国大陆 - 男 - yunjian"},
+                {"short_name": "zh-CN-YunxiNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunxi", "description": "[通用] 普通话 - 中国大陆 - 男 - yunxi"},
+                {"short_name": "zh-CN-YunxiaNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "yunxia", "description": "[通用] 普通话 - 中国大陆 - 男 - yunxia"},
+                {"short_name": "zh-CN-YunyangNeural", "locale": "zh-CN", "language": "普通话", "region": "中国大陆", "gender": "Male", "gender_cn": "男", "style": "专业", "name": "yunyang", "description": "[专业] 普通话 - 中国大陆 - 男 - yunyang"},
+                # 中国方言
+                {"short_name": "zh-CN-liaoning-XiaobeiNeural", "locale": "zh-CN-liaoning", "language": "东北官话", "region": "中国辽宁", "gender": "Female", "gender_cn": "女", "style": "幽默", "name": "xiaobei", "description": "[幽默] 东北官话 - 中国辽宁 - 女 - xiaobei"},
+                {"short_name": "zh-CN-shaanxi-XiaoniNeural", "locale": "zh-CN-shaanxi", "language": "中原官话", "region": "中国陕西", "gender": "Female", "gender_cn": "女", "style": "明亮", "name": "xiaoni", "description": "[明亮] 中原官话 - 中国陕西 - 女 - xiaoni"},
+                # 中国香港 (粤语)
+                {"short_name": "zh-HK-HiuGaaiNeural", "locale": "zh-HK", "language": "粤语", "region": "中国香港", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "hiugaai", "description": "[友好] 粤语 - 中国香港 - 女 - hiugaai"},
+                {"short_name": "zh-HK-HiuMaanNeural", "locale": "zh-HK", "language": "粤语", "region": "中国香港", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "hiumaan", "description": "[友好] 粤语 - 中国香港 - 女 - hiumaan"},
+                {"short_name": "zh-HK-WanLungNeural", "locale": "zh-HK", "language": "粤语", "region": "中国香港", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "wanlung", "description": "[友好] 粤语 - 中国香港 - 男 - wanlung"},
+                # 中国台湾 (台湾国语)
+                {"short_name": "zh-TW-HsiaoChenNeural", "locale": "zh-TW", "language": "台湾国语", "region": "中国台湾", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "hsiaochen", "description": "[友好] 台湾国语 - 中国台湾 - 女 - hsiaochen"},
+                {"short_name": "zh-TW-YunJheNeural", "locale": "zh-TW", "language": "台湾国语", "region": "中国台湾", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "yunjhe", "description": "[友好] 台湾国语 - 中国台湾 - 男 - yunjhe"},
+                {"short_name": "zh-TW-HsiaoYuNeural", "locale": "zh-TW", "language": "台湾国语", "region": "中国台湾", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "hsiaoyu", "description": "[友好] 台湾国语 - 中国台湾 - 女 - hsiaoyu"},
+                # 美国 (英语)
+                {"short_name": "en-US-AvaNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Female", "gender_cn": "女", "style": "通用", "name": "ava", "description": "[通用] 英语 - 美国 - 女 - ava"},
+                {"short_name": "en-US-AndrewNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Male", "gender_cn": "男", "style": "温暖", "name": "andrew", "description": "[温暖] 英语 - 美国 - 男 - andrew"},
+                {"short_name": "en-US-EmmaNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Female", "gender_cn": "女", "style": "开朗", "name": "emma", "description": "[开朗] 英语 - 美国 - 女 - emma"},
+                {"short_name": "en-US-BrianNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "brian", "description": "[通用] 英语 - 美国 - 男 - brian"},
+                {"short_name": "en-US-AriaNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Female", "gender_cn": "女", "style": "积极", "name": "aria", "description": "[积极] 英语 - 美国 - 女 - aria"},
+                {"short_name": "en-US-JennyNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "jenny", "description": "[友好] 英语 - 美国 - 女 - jenny"},
+                {"short_name": "en-US-GuyNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Male", "gender_cn": "男", "style": "通用", "name": "guy", "description": "[通用] 英语 - 美国 - 男 - guy"},
+                {"short_name": "en-US-MichelleNeural", "locale": "en-US", "language": "英语", "region": "美国", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "michelle", "description": "[友好] 英语 - 美国 - 女 - michelle"},
+                # 英国 (英语)
+                {"short_name": "en-GB-LibbyNeural", "locale": "en-GB", "language": "英语", "region": "英国", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "libby", "description": "[友好] 英语 - 英国 - 女 - libby"},
+                {"short_name": "en-GB-MaisieNeural", "locale": "en-GB", "language": "英语", "region": "英国", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "maisie", "description": "[友好] 英语 - 英国 - 女 - maisie"},
+                {"short_name": "en-GB-RyanNeural", "locale": "en-GB", "language": "英语", "region": "英国", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "ryan", "description": "[友好] 英语 - 英国 - 男 - ryan"},
+                {"short_name": "en-GB-SoniaNeural", "locale": "en-GB", "language": "英语", "region": "英国", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "sonia", "description": "[友好] 英语 - 英国 - 女 - sonia"},
+                {"short_name": "en-GB-ThomasNeural", "locale": "en-GB", "language": "英语", "region": "英国", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "thomas", "description": "[友好] 英语 - 英国 - 男 - thomas"},
+                # 加拿大 (英语)
+                {"short_name": "en-CA-ClaraNeural", "locale": "en-CA", "language": "英语", "region": "加拿大", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "clara", "description": "[友好] 英语 - 加拿大 - 女 - clara"},
+                {"short_name": "en-CA-LiamNeural", "locale": "en-CA", "language": "英语", "region": "加拿大", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "liam", "description": "[友好] 英语 - 加拿大 - 男 - liam"},
+                # 日本 (日语)
+                {"short_name": "ja-JP-KeitaNeural", "locale": "ja-JP", "language": "日语", "region": "日本", "gender": "Male", "gender_cn": "男", "style": "友好", "name": "keita", "description": "[友好] 日语 - 日本 - 男 - keita"},
+                {"short_name": "ja-JP-NanamiNeural", "locale": "ja-JP", "language": "日语", "region": "日本", "gender": "Female", "gender_cn": "女", "style": "友好", "name": "nanami", "description": "[友好] 日语 - 日本 - 女 - nanami"}
             ],
             "logging": {
                 "max_logs": 200,
