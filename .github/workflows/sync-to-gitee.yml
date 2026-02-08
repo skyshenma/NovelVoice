@@ -11,15 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 获取完整历史记录
-      
       - name: Sync to Gitee
-        uses: wearerequired/git-mirror-action@v1
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.GITEE_SSH_PRIVATE_KEY }}
+        uses: Yikun/hub-mirror-action@master
         with:
-          source-repo: git@github.com:skyshenma/NovelVoice.git
-          destination-repo: git@gitee.com:skyshenma/NovelVoice.git
+          src: github/skyshenma
+          dst: gitee/skyshenma
+          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          static_list: "NovelVoice"
+          force_update: true
+          debug: true
