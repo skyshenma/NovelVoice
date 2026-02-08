@@ -129,1325 +129,1255 @@
                         class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
                 </div>
 
-                <div id="app" class="flex flex-col h-full">
-                    <!-- Top Navigation Bar -->
-                    <div
-                        class="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between shrink-0">
-                        <div class="flex items-center gap-4">
-                            <h1 class="text-xl font-bold text-blue-400 flex items-center gap-2 cursor-pointer"
-                                @click="viewMode = 'list'">
-                                <span>🎙️</span> NovelVoice
-                            </h1>
-                            <span class="text-xs text-gray-500">AI 有声书生成器</span>
+                <!-- Concurrency -->
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <label class="text-gray-300">并发数 (Threads)</label>
+                        <span class="text-green-400">{{ concurrency }}</span>
+                    </div>
+                    <input type="number" min="1" max="10" v-model="concurrency" @change="updateConcurrency"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+
+                <!-- Advanced Settings Toggle -->
+                <div class="pt-3 border-t border-gray-700">
+                    <button @click="showAdvanced = !showAdvanced"
+                        class="w-full flex items-center justify-between text-sm text-gray-400 hover:text-white transition-colors">
+                        <span class="flex items-center gap-2">
+                            <span>⚙️</span>
+                            <span>高级设置</span>
+                        </span>
+                        <span class="text-xs">{{ showAdvanced ? '▼' : '▶' }}</span>
+                    </button>
+
+                    <!-- Advanced Settings Panel -->
+                    <div v-show="showAdvanced" class="mt-3 space-y-3 animate-fade-in">
+                        <!-- Max Retries -->
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">
+                                重试次数 (0-10)
+                            </label>
+                            <input type="number" v-model="maxRetries" min="0" max="10"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
-                        <div class="flex items-center gap-4">
-                            <a href="https://github.com/skyshenma/NovelVoice" target="_blank"
-                                class="text-sm text-gray-400 hover:text-blue-400 flex items-center gap-1 transition-colors">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                                </svg>
-                                GitHub
-                            </a>
-                            <a href="https://github.com/skyshenma/NovelVoice/blob/main/README.md" target="_blank"
-                                class="text-sm text-gray-400 hover:text-blue-400 transition-colors">
-                                📖 文档
-                            </a>
-                            <a href="https://hub.docker.com/r/skyshenma2024/novelvoice" target="_blank"
-                                class="text-sm text-gray-400 hover:text-blue-400 flex items-center gap-1 transition-colors">
-                                🐳 Docker Hub
-                            </a>
+
+                        <!-- Timeout -->
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">
+                                超时时间 (10-120秒)
+                            </label>
+                            <input type="number" v-model="timeout" min="10" max="120"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+
+                        <!-- Max Chars -->
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">
+                                最大字符数 (1000-20000)
+                            </label>
+                            <input type="number" v-model="maxChars" min="1000" max="20000" step="1000"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save as Default Button -->
+                <div class="pt-3 border-t border-gray-700">
+                    <button @click="saveAsDefault" :disabled="saving"
+                        class="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2 rounded transition-colors flex items-center justify-center gap-2">
+                        <span v-if="saving" class="animate-spin">⏳</span>
+                        <span v-else>💾</span>
+                        {{ saving ? '保存中...' : '保存为默认配置' }}
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        💡 保存后下次启动将使用这些默认值
+                    </p>
+                </div>
+            </div>
+
+            <!-- Test Voice & Console -->
+            <div class="space-y-4">
+                <!-- Test Voice Button -->
+                <button @click="testVoice" :disabled="previewing"
+                    class="w-full bg-gray-600 hover:bg-gray-500 text-white text-xs py-2 rounded flex items-center justify-center gap-2 transition-colors">
+                    <span v-if="previewing" class="animate-spin">⏳</span>
+                    <span v-else>🔊</span>
+                    试听当前发音人
+                </button>
+
+                <!-- Custom Preview Console -->
+                <div class="pt-4 border-t border-gray-700">
+                    <h2 class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">自定义试听</h2>
+                    <div class="relative">
+                        <textarea v-model="customText" rows="3" maxlength="100"
+                            class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                            :placeholder="defaultCustomPlaceholder"></textarea>
+                        <div class="absolute bottom-1 right-2 text-xs text-gray-500">{{ customText.length }}/100</div>
+                    </div>
+
+                    <div class="flex gap-2 mt-2">
+                        <button @click="testCustomVoice" :disabled="customPreviewing || !customText"
+                            class="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs py-1.5 rounded transition-colors flex items-center justify-center gap-1">
+                            <span v-if="customPreviewing" class="animate-spin">⏳</span>
+                            <span v-else>🔊</span>
+                            试听
+                        </button>
+                        <button @click="setRandomText" :disabled="customPreviewing"
+                            class="px-3 bg-gray-600 hover:bg-gray-500 text-white text-xs py-1.5 rounded transition-colors"
+                            title="随机语段">
+                            ✨
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bark Notification Config -->
+            <div class="pt-6 border-t border-gray-700 space-y-3">
+                <h2 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    📱 推送通知
+                </h2>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Bark 服务器地址</label>
+                    <input type="text" v-model="barkConfig.serverUrl" placeholder="https://api.day.app"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Bark Key</label>
+                    <input type="password" v-model="barkConfig.apiKey" placeholder="你的 Bark Key"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" v-model="barkConfig.enabled" id="barkEnabled"
+                        class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
+                    <label for="barkEnabled" class="text-xs text-gray-300 cursor-pointer">启用推送通知</label>
+                </div>
+
+                <button @click="testBarkNotification"
+                    :disabled="barkTesting || !barkConfig.serverUrl || !barkConfig.apiKey"
+                    class="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <span v-if="barkTesting" class="animate-spin">⏳</span>
+                    <span v-else>🔔</span>
+                    {{ barkTesting ? '发送中...' : '发送测试通知' }}
+                </button>
+
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    💡 提示：启用后，任务开始和完成时会自动推送通知到你的手机
+                </p>
+            </div>
+
+            <!-- Upload -->
+            <div class="pt-6 border-t border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">导入书籍</h2>
+                <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 hover:bg-gray-750 transition-colors"
+                    @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
+                    <input type="file" ref="fileInput" class="hidden" accept=".txt,.epub" @change="handleFileSelect">
+                    <p class="text-gray-400 text-sm" v-if="!uploading">点击或拖拽上传 TXT/EPUB</p>
+                    <p class="text-blue-400 text-sm animate-pulse" v-else>正在处理...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-gray-900 relative">
+
+            <!-- LIST VIEW -->
+            <div v-if="viewMode === 'list'" class="flex-1 overflow-y-auto p-8">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-100">书籍列表</h2>
+                        <button @click="fetchBooks"
+                            class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+                            🔄 刷新
+                        </button>
+                    </div>
+
+                    <div class="grid gap-4">
+                        <div v-for="book in books" :key="book.name"
+                            class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-lg hover:border-gray-600 transition-all cursor-pointer group"
+                            @click="enterDetail(book)">
+
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3
+                                        class="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                                        {{ book.name }}</h3>
+                                    <p class="text-xs text-gray-500 font-mono">{{ book.path }}</p>
+                                </div>
+                                <span :class="statusClass(book.status)"
+                                    class="px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
+                                    {{ book.status }}
+                                </span>
+                            </div>
+
+                            <!-- Progress -->
+                            <div class="mb-4">
+                                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                    <span>{{ book.completed }} / {{ book.total }} 章节</span>
+                                    <span>{{ progressPercent(book) }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                        :style="{ width: progressPercent(book) + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Start -->
+                            <div class="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2" @click.stop>
+                                <input type="text" v-model="quickRanges[book.name]" placeholder="范围 (如 1-10)"
+                                    class="bg-gray-700 text-xs text-gray-200 px-2 py-1.5 rounded flex-1 outline-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 transition-colors">
+
+                                <button @click="handleQuickStart(book)" :disabled="book.status === 'processing'"
+                                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded transition-colors whitespace-nowrap">
+                                    ▶️ 开始
+                                </button>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button class="mt-2 text-sm text-blue-400 hover:text-blue-300">
+                                    进入详情 & 管理 >
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="books.length === 0"
+                            class="text-center py-12 text-gray-500 bg-gray-800/50 rounded-lg border border-dashed border-gray-700">
+                            暂无书籍，请先上传
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DETAIL VIEW -->
+            <div v-else class="flex-1 flex flex-col h-full">
+                <!-- Header -->
+                <div class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
+                    <div class="flex items-center gap-4">
+                        <button @click="viewMode = 'list'"
+                            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700">
+                            ← 返回
+                        </button>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">{{ currentBook.name }}</h2>
+                            <div class="text-xs text-gray-400 flex flex-wrap gap-4 items-center mt-1">
+                                <span>Total: {{ chapters.length }}</span>
+
+                                <!-- Selected Progress -->
+                                <div class="flex items-center gap-2" v-if="selectedChapters.size > 0">
+                                    <span class="text-blue-400">Selected: {{ selectedChapters.size }}</span>
+                                    <div class="w-16 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                                            :style="{ width: selectedProgress + '%' }"></div>
+                                    </div>
+                                    <span class="text-blue-400">{{ selectedProgress }}%</span>
+                                </div>
+                                <span v-else>Selected: 0</span>
+
+                                <span v-if="currentTaskStatus.is_running"
+                                    class="text-green-400 flex items-center gap-1">
+                                    <span class="animate-pulse">●</span> Running
+                                </span>
+                                <span v-else-if="currentTaskStatus.is_paused"
+                                    class="text-yellow-400 flex items-center gap-1">
+                                    <span>⏸</span> Paused
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-1 overflow-hidden">
-                        <!-- Sidebar -->
-                        <div class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
-                            <!-- Upload Section - 置顶 -->
-                            <div class="p-4 border-b border-gray-700">
-                                <h2 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">📚 导入书籍
-                                </h2>
-                                <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 hover:bg-gray-750 transition-colors"
-                                    @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
-                                    <input type="file" ref="fileInput" class="hidden" accept=".txt,.epub"
-                                        @change="handleFileSelect">
-                                    <p class="text-gray-400 text-sm" v-if="!uploading">点击或拖拽上传 TXT/EPUB</p>
-                                    <p class="text-blue-400 text-sm animate-pulse" v-else>正在处理...</p>
-                                </div>
-                            </div>
+                    <button @click="openFolder(currentBook.name)"
+                        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-xs rounded transition-colors text-white">
+                        📂 打开文件夹
+                    </button>
+                </div>
 
-                            <!-- Scrollable Config Area -->
-                            <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                                <!-- Basic TTS Settings -->
-                                <div>
-                                    <h2
-                                        class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider flex items-center justify-between">
-                                        🎤 配音设置
-                                        <button @click="reloadConfig"
-                                            class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                                            🔄 重载配置
-                                        </button>
-                                    </h2>
-                                    <div class="space-y-3">
-                                        <!-- Voice -->
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300">发音人 (Voice)</label>
-                                            <select v-model="config.voice"
-                                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                                <option v-for="v in voices" :key="v.ShortName" :value="v.ShortName">
-                                                    {{ v.Description || `[${v.Style}]
-                                                    ${v.ShortName.split('-').pop().replace('Neural','')} (${v.Gender})`
-                                                    }}
-                                                </option>
-                                            </select>
-                                        </div>
+                <!-- Sticky Control Bar -->
+                <div
+                    class="bg-gray-800/90 backdrop-blur border-b border-gray-700 p-3 flex items-center gap-4 justify-between sticky top-0 z-10">
+                    <div class="flex items-center gap-2">
+                        <label
+                            class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white select-none">
+                            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"
+                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700">
+                            全选
+                        </label>
+                        <span class="h-4 w-px bg-gray-600 mx-2"></span>
+                        <button @click="deleteSelected"
+                            :disabled="selectedChapters.size === 0 || currentTaskStatus.is_running"
+                            class="text-xs text-red-400 hover:text-red-300 disabled:text-gray-600 px-2 py-1 rounded hover:bg-gray-700/50 transition-colors">
+                            🗑️ 清理选中
+                        </button>
 
-                                        <!-- Rate -->
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300 flex justify-between">
-                                                <span>语速 (Rate)</span>
-                                                <span class="text-blue-400">{{ config.rate }} %</span>
-                                            </label>
-                                            <input type="range" v-model.number="config.rate" min="-50" max="100"
-                                                step="10" class="w-full">
-                                        </div>
-
-                                        <!-- Volume -->
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300 flex justify-between">
-                                                <span>音量 (Volume)</span>
-                                                <span class="text-blue-400">{{ config.volume }} %</span>
-                                            </label>
-                                            <input type="range" v-model.number="config.volume" min="-50" max="50"
-                                                step="10" class="w-full">
-                                        </div>
-
-                                        <!-- Pitch -->
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300 flex justify-between">
-                                                <span>音调 (Pitch)</span>
-                                                <span class="text-blue-400">{{ config.pitch }} Hz</span>
-                                            </label>
-                                            <input type="range" v-model.number="config.pitch" min="-50" max="50"
-                                                step="10" class="w-full">
-                                        </div>
-
-                                        <!-- Threads -->
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300 flex justify-between">
-                                                <span>并发数 (Threads)</span>
-                                                <span class="text-green-400">{{ concurrency }}</span>
-                                            </label>
-                                            <input type="number" v-model.number="concurrency" min="1" max="10"
-                                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Advanced Settings - Collapsible -->
-                                <div class="border-t border-gray-700 pt-4">
-                                    <button @click="showAdvanced = !showAdvanced"
-                                        class="w-full flex items-center justify-between text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-300 transition-colors">
-                                        <span>⚙️ 高级设置</span>
-                                        <span class="text-lg">{{ showAdvanced ? '▼' : '▶' }}</span>
-                                    </button>
-
-                                    <div v-show="showAdvanced" class="mt-3 space-y-4">
-                                        <!-- Save Config -->
-                                        <div>
-                                            <button @click="saveConfig" :disabled="savingConfig"
-                                                class="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2 rounded transition-colors flex items-center justify-center gap-2">
-                                                <span v-if="savingConfig" class="animate-spin">⏳</span>
-                                                <span v-else>💾</span>
-                                                {{ savingConfig ? '保存中...' : '保存为默认配置' }}
-                                            </button>
-                                            <p class="text-xs text-gray-500 mt-2">
-                                                💡 保存后下次启动时会使用这些设置
-                                            </p>
-                                        </div>
-
-                                        <!-- Preview -->
-                                        <div>
-                                            <button @click="previewVoice" :disabled="previewing"
-                                                class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2 rounded transition-colors flex items-center justify-center gap-2">
-                                                <span v-if="previewing" class="animate-spin">⏳</span>
-                                                <span v-else>🔊</span>
-                                                {{ previewing ? '试听中...' : '试听当前发音人' }}
-                                            </button>
-                                        </div>
-
-                                        <!-- Custom Preview -->
-                                        <div>
-                                            <h3 class="text-sm font-semibold text-gray-400 mb-2">自定义试读</h3>
-                                            <textarea v-model="customText" placeholder="你好，我是Yunjian，您可以以此来测试我读。"
-                                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                                                rows="3" maxlength="100"></textarea>
-                                            <div class="flex justify-between items-center mt-2">
-                                                <span class="text-xs text-gray-500">{{ customText.length }}/100</span>
-                                                <button @click="previewCustom"
-                                                    :disabled="!customText || customPreviewing"
-                                                    class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs px-3 py-1 rounded transition-colors">
-                                                    {{ customPreviewing ? '试听中...' : '▶ 试听' }}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Bark Notifications - Collapsible -->
-                                <div class="border-t border-gray-700 pt-4">
-                                    <button @click="showBark = !showBark"
-                                        class="w-full flex items-center justify-between text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-300 transition-colors">
-                                        <span>📱 推送通知</span>
-                                        <span class="text-lg">{{ showBark ? '▼' : '▶' }}</span>
-                                    </button>
-
-                                    <div v-show="showBark" class="mt-3 space-y-3">
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300">Bark 服务器地址</label>
-                                            <input type="text" v-model="bark.serverUrl"
-                                                placeholder="https://api.day.app"
-                                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm mb-1 text-gray-300">Bark Key</label>
-                                            <input type="text" v-model="barkConfig.apiKey" placeholder="你的 Bark Key"
-                                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        </div>
-
-                                        <div class="flex items-center gap-2">
-                                            <input type="checkbox" v-model="barkConfig.enabled" id="barkEnabled"
-                                                class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
-                                            <label for="barkEnabled" class="text-sm text-gray-300">启用推送通知</label>
-                                        </div>
-
-                                        <button @click="testBark"
-                                            :disabled="!barkConfig.enabled || !barkConfig.apiKey || barkTesting"
-                                            class="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
-                                            <span v-if="barkTesting" class="animate-spin">⏳</span>
-                                            <span v-else>🔔</span>
-                                            {{ barkTesting ? '发送中...' : '发送测试通知' }}
-                                        </button>
-
-                                        <p class="text-xs text-gray-500 leading-relaxed">
-                                            💡 提示：启用后，任务开始和完成时会自动推送通知到你的手机
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Range Selection -->
+                        <div
+                            class="flex items-center bg-gray-700/50 rounded overflow-hidden border border-gray-600 focus-within:ring-1 focus-within:ring-blue-500">
+                            <input type="text" v-model="rangeInput" placeholder="1-5,8"
+                                @keydown.enter="applyRangeSelection"
+                                class="w-20 bg-transparent text-xs text-gray-200 px-2 py-1 outline-none placeholder-gray-500">
+                            <button @click="applyRangeSelection"
+                                class="bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-1 text-xs border-l border-gray-600 transition-colors"
+                                title="应用范围">
+                                ✓
+                            </button>
                         </div>
 
-                        <!-- Main Content Area -->
-                        <div class="flex-1 flex flex-col h-full overflow-hidden bg-gray-900 relative">
+                        <!-- Logs Toggle -->
+                        <button @click="showLogs = !showLogs"
+                            class="text-gray-400 hover:text-white p-2 rounded hover:bg-gray-700 transition-colors"
+                            title="查看日志">
+                            <span class="text-sm">📜</span>
+                        </button>
+                    </div>
 
-                            <!-- LIST VIEW -->
-                            <div v-if="viewMode === 'list'" class="flex-1 overflow-y-auto p-8">
-                                <div class="max-w-4xl mx-auto">
-                                    <div class="flex justify-between items-center mb-6">
-                                        <h2 class="text-xl font-bold text-gray-100">书籍列表</h2>
-                                        <button @click="fetchBooks"
-                                            class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
-                                            🔄 刷新
-                                        </button>
-                                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Start Button -->
+                        <button @click="startSelected"
+                            v-if="!currentTaskStatus.is_running && !currentTaskStatus.is_paused"
+                            :disabled="selectedChapters.size === 0"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                            <span>▶️</span> 开始生成 ({{ selectedChapters.size }})
+                        </button>
 
-                                    <div class="grid gap-4">
-                                        <div v-for="book in books" :key="book.name"
-                                            class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-lg hover:border-gray-600 transition-all cursor-pointer group"
-                                            @click="enterDetail(book)">
+                        <!-- Pause/Resume Controls -->
+                        <template v-else>
+                            <button @click="pauseTask" v-if="!currentTaskStatus.is_paused"
+                                class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                                <span>⏸</span> 暂停
+                            </button>
+                            <button @click="resumeTask" v-else
+                                class="px-6 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
+                                <span>▶️</span> 继续
+                            </button>
+                        </template>
+                    </div>
+                </div>
 
-                                            <div class="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <h3
-                                                        class="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
-                                                        {{ book.name }}</h3>
-                                                    <p class="text-xs text-gray-500 font-mono">{{ book.path }}</p>
-                                                </div>
-                                                <span :class="statusClass(book.status)"
-                                                    class="px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
-                                                    {{ book.status }}
-                                                </span>
-                                            </div>
+                <!-- Chapter List -->
+                <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
+                    <div class="space-y-1">
+                        <div v-for="chapter in chapters" :key="chapter.id"
+                            class="flex items-center gap-3 p-3 rounded hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-700 group"
+                            :class="{'bg-gray-800/50': selectedChapters.has(chapter.id)}">
 
-                                            <!-- Progress -->
-                                            <div class="mb-4">
-                                                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                                    <span>{{ book.completed }} / {{ book.total }} 章节</span>
-                                                    <span>{{ progressPercent(book) }}%</span>
-                                                </div>
-                                                <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                                        :style="{ width: progressPercent(book) + '%' }"></div>
-                                                </div>
-                                            </div>
+                            <input type="checkbox" :checked="selectedChapters.has(chapter.id)"
+                                @change="toggleChapter(chapter.id)"
+                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700 cursor-pointer">
 
-                                            <!-- Quick Start -->
-                                            <div class="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2"
-                                                @click.stop>
-                                                <input type="text" v-model="quickRanges[book.name]"
-                                                    placeholder="范围 (如 1-10)"
-                                                    class="bg-gray-700 text-xs text-gray-200 px-2 py-1.5 rounded flex-1 outline-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 transition-colors">
-
-                                                <button @click="handleQuickStart(book)"
-                                                    :disabled="book.status === 'processing'"
-                                                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded transition-colors whitespace-nowrap">
-                                                    ▶️ 开始
-                                                </button>
-                                            </div>
-
-                                            <div class="flex gap-2">
-                                                <button class="mt-2 text-sm text-blue-400 hover:text-blue-300">
-                                                    进入详情 & 管理 >
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div v-if="books.length === 0"
-                                            class="text-center py-12 text-gray-500 bg-gray-800/50 rounded-lg border border-dashed border-gray-700">
-                                            暂无书籍，请先上传
-                                        </div>
-                                    </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-500 font-mono text-xs w-12 text-right">#{{ chapter.id
+                                        }}</span>
+                                    <span class="text-sm text-gray-200 truncate font-medium">{{ chapter.title }}</span>
                                 </div>
-                            </div>
-
-                            <!-- DETAIL VIEW -->
-                            <div v-else class="flex-1 flex flex-col h-full">
-                                <!-- Header -->
-                                <div
-                                    class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
-                                    <div class="flex items-center gap-4">
-                                        <button @click="viewMode = 'list'"
-                                            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700">
-                                            ← 返回
-                                        </button>
-                                        <div>
-                                            <h2 class="text-lg font-bold text-white">{{ currentBook.name }}</h2>
-                                            <div class="text-xs text-gray-400 flex flex-wrap gap-4 items-center mt-1">
-                                                <span>Total: {{ chapters.length }}</span>
-
-                                                <!-- Selected Progress -->
-                                                <div class="flex items-center gap-2" v-if="selectedChapters.size > 0">
-                                                    <span class="text-blue-400">Selected: {{ selectedChapters.size
-                                                        }}</span>
-                                                    <div class="w-16 bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                                        <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                                                            :style="{ width: selectedProgress + '%' }"></div>
-                                                    </div>
-                                                    <span class="text-blue-400">{{ selectedProgress }}%</span>
-                                                </div>
-                                                <span v-else>Selected: 0</span>
-
-                                                <span v-if="currentTaskStatus.is_running"
-                                                    class="text-green-400 flex items-center gap-1">
-                                                    <span class="animate-pulse">●</span> Running
-                                                </span>
-                                                <span v-else-if="currentTaskStatus.is_paused"
-                                                    class="text-yellow-400 flex items-center gap-1">
-                                                    <span>⏸</span> Paused
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <button @click="openFolder(currentBook.name)"
-                                        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-xs rounded transition-colors text-white">
-                                        📂 打开文件夹
+                                <div class="flex items-center gap-2 ml-14 mt-1">
+                                    <span class="text-xs text-gray-500">{{ chapter.length }} 字</span>
+                                    <button @click.stop="previewChapter(chapter)"
+                                        class="text-xs text-blue-500 hover:text-blue-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="试听前20字">
+                                        🔊 试听
                                     </button>
                                 </div>
-
-                                <!-- Sticky Control Bar -->
-                                <div
-                                    class="bg-gray-800/90 backdrop-blur border-b border-gray-700 p-3 flex items-center gap-4 justify-between sticky top-0 z-10">
-                                    <div class="flex items-center gap-2">
-                                        <label
-                                            class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white select-none">
-                                            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"
-                                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700">
-                                            全选
-                                        </label>
-                                        <span class="h-4 w-px bg-gray-600 mx-2"></span>
-                                        <button @click="deleteSelected"
-                                            :disabled="selectedChapters.size === 0 || currentTaskStatus.is_running"
-                                            class="text-xs text-red-400 hover:text-red-300 disabled:text-gray-600 px-2 py-1 rounded hover:bg-gray-700/50 transition-colors">
-                                            🗑️ 清理选中
-                                        </button>
-
-                                        <!-- Range Selection -->
-                                        <div
-                                            class="flex items-center bg-gray-700/50 rounded overflow-hidden border border-gray-600 focus-within:ring-1 focus-within:ring-blue-500">
-                                            <input type="text" v-model="rangeInput" placeholder="1-5,8"
-                                                @keydown.enter="applyRangeSelection"
-                                                class="w-20 bg-transparent text-xs text-gray-200 px-2 py-1 outline-none placeholder-gray-500">
-                                            <button @click="applyRangeSelection"
-                                                class="bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-1 text-xs border-l border-gray-600 transition-colors"
-                                                title="应用范围">
-                                                ✓
-                                            </button>
-                                        </div>
-
-                                        <!-- Logs Toggle -->
-                                        <button @click="showLogs = !showLogs"
-                                            class="text-gray-400 hover:text-white p-2 rounded hover:bg-gray-700 transition-colors"
-                                            title="查看日志">
-                                            <span class="text-sm">📜</span>
-                                        </button>
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <!-- Start Button -->
-                                        <button @click="startSelected"
-                                            v-if="!currentTaskStatus.is_running && !currentTaskStatus.is_paused"
-                                            :disabled="selectedChapters.size === 0"
-                                            class="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                                            <span>▶️</span> 开始生成 ({{ selectedChapters.size }})
-                                        </button>
-
-                                        <!-- Pause/Resume Controls -->
-                                        <template v-else>
-                                            <button @click="pauseTask" v-if="!currentTaskStatus.is_paused"
-                                                class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                                                <span>⏸</span> 暂停
-                                            </button>
-                                            <button @click="resumeTask" v-else
-                                                class="px-6 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded shadow-lg transition-all flex items-center gap-2">
-                                                <span>▶️</span> 继续
-                                            </button>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <!-- Chapter List -->
-                                <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
-                                    <div class="space-y-1">
-                                        <div v-for="chapter in chapters" :key="chapter.id"
-                                            class="flex items-center gap-3 p-3 rounded hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-700 group"
-                                            :class="{'bg-gray-800/50': selectedChapters.has(chapter.id)}">
-
-                                            <input type="checkbox" :checked="selectedChapters.has(chapter.id)"
-                                                @change="toggleChapter(chapter.id)"
-                                                class="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700 cursor-pointer">
-
-                                            <div class="flex-1 min-w-0">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="text-gray-500 font-mono text-xs w-12 text-right">#{{
-                                                        chapter.id
-                                                        }}</span>
-                                                    <span class="text-sm text-gray-200 truncate font-medium">{{
-                                                        chapter.title }}</span>
-                                                </div>
-                                                <div class="flex items-center gap-2 ml-14 mt-1">
-                                                    <span class="text-xs text-gray-500">{{ chapter.length }} 字</span>
-                                                    <button @click.stop="previewChapter(chapter)"
-                                                        class="text-xs text-blue-500 hover:text-blue-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        title="试听前20字">
-                                                        🔊 试听
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <!-- Dynamic Status Icon -->
-                                            <div class="w-24 text-right flex justify-end">
-                                                <span v-if="chapter.status === 'completed'"
-                                                    class="text-green-500 flex items-center gap-1 text-xs">
-                                                    ✅ 已完成
-                                                </span>
-                                                <span v-else-if="chapter.status === 'failed'"
-                                                    class="text-red-500 flex items-center gap-1 text-xs">
-                                                    ❌ 失败
-                                                </span>
-                                                <span v-else-if="currentChapterIds.includes(chapter.title)"
-                                                    class="text-blue-400 flex items-center gap-1 text-xs animate-pulse">
-                                                    ⏳ 生成中...
-                                                </span>
-                                                <span v-else class="text-gray-600 text-xs">
-                                                    等待中
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
+                            <!-- Dynamic Status Icon -->
+                            <div class="w-24 text-right flex justify-end">
+                                <span v-if="chapter.status === 'completed'"
+                                    class="text-green-500 flex items-center gap-1 text-xs">
+                                    ✅ 已完成
+                                </span>
+                                <span v-else-if="chapter.status === 'failed'"
+                                    class="text-red-500 flex items-center gap-1 text-xs">
+                                    ❌ 失败
+                                </span>
+                                <span v-else-if="currentChapterIds.includes(chapter.title)"
+                                    class="text-blue-400 flex items-center gap-1 text-xs animate-pulse">
+                                    ⏳ 生成中...
+                                </span>
+                                <span v-else class="text-gray-600 text-xs">
+                                    等待中
+                                </span>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <!-- 版本更新弹窗 -->
-                        <div v-if="showUpdateModal"
-                            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                            @click.self="showUpdateModal = false">
-                            <div
-                                class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-700 animate-fade-in">
-                                <!-- 标题 -->
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                                        <span class="text-2xl">🎉</span>
-                                        <span>发现新版本</span>
-                                    </h3>
-                                    <button @click="showUpdateModal = false"
-                                        class="text-gray-400 hover:text-white transition-colors">
-                                        <span class="text-2xl">×</span>
-                                    </button>
-                                </div>
+        </div>
 
-                                <!-- 内容 -->
-                                <div v-if="updateInfo" class="space-y-4">
-                                    <div class="bg-gray-900 rounded p-4">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="text-gray-400 text-sm">当前版本</span>
-                                            <span class="text-white font-mono">{{ updateInfo.current_version }}</span>
-                                        </div>
-                                        <div class="flex items-center justify-center my-2">
-                                            <span class="text-green-400 text-2xl">↓</span>
-                                        </div>
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-gray-400 text-sm">最新版本</span>
-                                            <span class="text-green-400 font-mono font-bold">{{
-                                                updateInfo.latest_version }}</span>
-                                        </div>
-                                    </div>
+        <!-- 版本更新弹窗 -->
+        <div v-if="showUpdateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            @click.self="showUpdateModal = false">
+            <div
+                class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-700 animate-fade-in">
+                <!-- 标题 -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-2xl">🎉</span>
+                        <span>发现新版本</span>
+                    </h3>
+                    <button @click="showUpdateModal = false" class="text-gray-400 hover:text-white transition-colors">
+                        <span class="text-2xl">×</span>
+                    </button>
+                </div>
 
-                                    <p class="text-gray-300 text-sm">
-                                        <span class="font-semibold">{{ updateInfo.package }}</span>
-                                        有新版本可用,建议更新以获得最新功能和修复。
-                                    </p>
+                <!-- 内容 -->
+                <div v-if="updateInfo" class="space-y-4">
+                    <div class="bg-gray-900 rounded p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-400 text-sm">当前版本</span>
+                            <span class="text-white font-mono">{{ updateInfo.current_version }}</span>
+                        </div>
+                        <div class="flex items-center justify-center my-2">
+                            <span class="text-green-400 text-2xl">↓</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400 text-sm">最新版本</span>
+                            <span class="text-green-400 font-mono font-bold">{{ updateInfo.latest_version }}</span>
+                        </div>
+                    </div>
 
-                                    <!-- 更新命令 -->
-                                    <div class="bg-gray-900 rounded p-3">
-                                        <p class="text-xs text-gray-400 mb-2">更新命令:</p>
-                                        <code class="text-green-400 text-sm font-mono">
+                    <p class="text-gray-300 text-sm">
+                        <span class="font-semibold">{{ updateInfo.package }}</span>
+                        有新版本可用,建议更新以获得最新功能和修复。
+                    </p>
+
+                    <!-- 更新命令 -->
+                    <div class="bg-gray-900 rounded p-3">
+                        <p class="text-xs text-gray-400 mb-2">更新命令:</p>
+                        <code class="text-green-400 text-sm font-mono">
                             pip install --upgrade {{ updateInfo.package }}
                         </code>
-                                    </div>
-                                </div>
-
-                                <!-- 按钮 -->
-                                <div class="flex gap-3 mt-6">
-                                    <button @click="dismissUpdate"
-                                        class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors">
-                                        稍后提醒
-                                    </button>
-                                    <a v-if="updateInfo" :href="`https://pypi.org/project/${updateInfo.package}/`"
-                                        target="_blank"
-                                        class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded text-center transition-colors">
-                                        查看详情
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
-                    <script>
-                        const { createApp, ref, computed, onMounted, watch, onBeforeUnmount } = Vue;
-
-                        createApp({
-                            setup() {
-                                // UI State
-                                const viewMode = ref('list'); // 'list' | 'detail'
-                                const currentBook = ref(null);
-
-                                // Data
-                                const books = ref([]);
-                                const chapters = ref([]);
-                                const selectedChapters = ref(new Set());
-                                const voices = ref([]);
-
-                                // Status
-                                const currentTaskStatus = ref({ is_running: false, is_paused: false, current_chapter: [] });
-                                const currentChapterIds = computed(() => currentTaskStatus.value.current_chapter || []);
-
-                                // Upload
-                                const uploading = ref(false);
-                                const fileInput = ref(null);
-
-                                // Config
-                                const rateVal = ref(0);
-                                const volumeVal = ref(0);
-                                const pitchVal = ref(0);
-                                const concurrency = ref(2);
-                                const config = ref({
-                                    voice: "zh-CN-XiaoxiaoNeural",
-                                    rate: "+0%",
-                                    volume: "+0%",
-                                    pitch: "+0Hz"
-                                });
-
-                                // Bark Notification Config
-                                const barkConfig = ref({
-                                    serverUrl: "",
-                                    apiKey: "",
-                                    enabled: false
-                                });
-                                const barkTesting = ref(false);
-
-                                // Advanced Settings
-                                const showAdvanced = ref(false);
-                                const showBark = ref(false);
-                                const maxRetries = ref(3);
-                                const timeout = ref(30);
-                                const maxChars = ref(8000);
-                                const saving = ref(false);
-
-                                // Config Reload
-                                const reloadingConfig = ref(false);
-                                const lastReloadTime = ref('');
-
-                                // Version Check
-                                const updateInfo = ref(null);
-                                const showUpdateModal = ref(false);
-
-                                // Computed
-                                watch(rateVal, (val) => config.value.rate = (val >= 0 ? "+" : "") + val + "%"); // Explicitly append % for display/logic if needed, though input handles number
-                                watch(volumeVal, (val) => config.value.volume = (val >= 0 ? "+" : "") + val + "%");
-                                watch(pitchVal, (val) => config.value.pitch = (val >= 0 ? "+" : "") + val + "Hz");
-
-                                const resetConfig = () => {
-                                    rateVal.value = 0;
-                                    volumeVal.value = 0;
-                                    pitchVal.value = 0;
-                                    concurrency.value = 2; // Optional: Reset concurrency too? Keep it separate maybe? Or include it? 
-                                    // Let's reset pitch/rate/volume only as they are the main "config" params
-                                };
-
-                                const reloadConfig = async () => {
-                                    if (reloadingConfig.value) return;
-
-                                    reloadingConfig.value = true;
-
-                                    try {
-                                        const res = await api.post('/config/reload');
-
-                                        if (res.data.success) {
-                                            // 更新 TTS 配置
-                                            if (res.data.config.tts) {
-                                                const tts = res.data.config.tts;
-
-                                                // 更新语音
-                                                if (tts.default_voice) {
-                                                    config.value.voice = tts.default_voice;
-                                                }
-
-                                                // 更新语速
-                                                if (tts.default_rate) {
-                                                    const rate = parseInt(tts.default_rate.replace('%', '').replace('+', ''));
-                                                    rateVal.value = rate;
-                                                }
-
-                                                // 更新音量
-                                                if (tts.default_volume) {
-                                                    const volume = parseInt(tts.default_volume.replace('%', '').replace('+', ''));
-                                                    volumeVal.value = volume;
-                                                }
-
-                                                // 更新音调
-                                                if (tts.default_pitch) {
-                                                    const pitch = parseInt(tts.default_pitch.replace('Hz', '').replace('+', ''));
-                                                    pitchVal.value = pitch;
-                                                }
-
-                                                // 更新并发数
-                                                if (tts.concurrency_limit) {
-                                                    concurrency.value = tts.concurrency_limit;
-                                                }
-
-                                                // 更新高级设置
-                                                if (tts.max_retries !== undefined) {
-                                                    maxRetries.value = tts.max_retries;
-                                                }
-                                                if (tts.timeout !== undefined) {
-                                                    timeout.value = tts.timeout;
-                                                }
-                                                if (tts.max_chars !== undefined) {
-                                                    maxChars.value = tts.max_chars;
-                                                }
-                                            }
-
-                                            // 更新 Bark 配置
-                                            if (res.data.config.bark) {
-                                                const bark = res.data.config.bark;
-                                                barkConfig.value.enabled = bark.enabled || false;
-                                                barkConfig.value.serverUrl = bark.server_url || '';
-                                                barkConfig.value.apiKey = bark.api_key || '';
-                                            }
-
-                                            // 更新语音列表
-                                            if (res.data.config.voices && res.data.config.voices.length > 0) {
-                                                voices.value = res.data.config.voices.map(v => ({
-                                                    ShortName: v.short_name,
-                                                    Gender: v.gender_cn || v.gender,
-                                                    Style: v.style,
-                                                    Description: v.description
-                                                }));
-                                            }
-
-                                            // 更新时间戳
-                                            lastReloadTime.value = new Date().toLocaleTimeString('zh-CN');
-
-                                            // 显示成功提示
-                                            alert('✅ ' + (res.data.message || '配置已从磁盘同步成功'));
-
-                                            // 如果有变更,在控制台显示
-                                            if (res.data.changes && Object.keys(res.data.changes).length > 0) {
-                                                console.log('[NovelVoice] Config changes:', res.data.changes);
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.error('[NovelVoice] Config reload failed:', error);
-                                        const message = error.response?.data?.detail || '配置重载失败';
-                                        alert('❌ ' + message);
-                                    } finally {
-                                        reloadingConfig.value = false;
-                                    }
-                                };
-
-                                const isAllSelected = computed(() => {
-                                    return chapters.value.length > 0 && selectedChapters.value.size === chapters.value.length;
-                                });
-
-                                const selectedProgress = computed(() => {
-                                    if (selectedChapters.value.size === 0) return 0;
-                                    const completed = chapters.value.filter(c => selectedChapters.value.has(c.id) && c.status === 'completed').length;
-                                    return Math.round((completed / selectedChapters.value.size) * 100);
-                                });
-
-                                // API
-                                const api = axios.create({ baseURL: '/api' });
-
-                                // --- Methods ---
-
-                                const fetchBooks = async () => {
-                                    try {
-                                        const res = await api.get('/books');
-                                        books.value = res.data;
-                                    } catch (e) { console.error(e); }
-                                };
-
-                                const fetchVoices = async () => {
-                                    const res = await api.get('/voices');
-                                    voices.value = res.data;
-                                };
-
-                                const updateConcurrency = async () => {
-                                    await api.post(`/concurrency?limit=${concurrency.value}`);
-                                };
-
-                                // Chapter Management
-                                const enterDetail = async (book) => {
-                                    currentBook.value = book;
-                                    viewMode.value = 'detail';
-                                    selectedChapters.value.clear(); // Clear selection on enter? Or keep? Let's clear for now.
-                                    await fetchChapters();
-                                    await fetchTaskStatus();
-                                };
-
-                                const fetchChapters = async () => {
-                                    if (!currentBook.value) return;
-                                    try {
-                                        const res = await api.get(`/chapters/${currentBook.value.name}`);
-                                        chapters.value = res.data;
-                                    } catch (e) { console.error(e); }
-                                };
-
-                                const fetchTaskStatus = async () => {
-                                    if (!currentBook.value) return;
-                                    try {
-                                        const res = await api.get(`/status/${currentBook.value.name}`);
-                                        currentTaskStatus.value = res.data;
-                                    } catch (e) { }
-                                };
-
-                                const toggleChapter = (id) => {
-                                    if (selectedChapters.value.has(id)) selectedChapters.value.delete(id);
-                                    else selectedChapters.value.add(id);
-                                };
-
-                                const toggleSelectAll = () => {
-                                    if (isAllSelected.value) {
-                                        selectedChapters.value.clear();
-                                    } else {
-                                        chapters.value.forEach(c => selectedChapters.value.add(c.id));
-                                    }
-                                };
-
-                                const rangeInput = ref("");
-                                const quickRanges = ref({});
-
-                                // Logs
-                                const showLogs = ref(false);
-                                const logs = ref([]);
-                                const logContainer = ref(null);
-
-                                // Auto-scroll logs
-                                watch(logs, async () => {
-                                    if (showLogs.value && logContainer.value) {
-                                        await Vue.nextTick();
-                                        logContainer.value.scrollTop = logContainer.value.scrollHeight;
-                                    }
-                                }, { deep: true });
-
-                                // Auto-fetch logs when opened
-                                watch(showLogs, (val) => {
-                                    if (val) fetchLogs();
-                                });
-
-                                const fetchLogs = async () => {
-                                    if (!currentBook.value || !showLogs.value) return;
-                                    try {
-                                        const res = await api.get(`/logs/${currentBook.value.name}`);
-                                        // Only update if length changed or we want to force refresh. 
-                                        // To avoid jitter, we could check last log timestamp, but this is simple.
-                                        // Actually, just replacing provides latest state.
-                                        if (JSON.stringify(res.data.logs) !== JSON.stringify(logs.value)) {
-                                            logs.value = res.data.logs;
-                                        }
-                                    } catch (e) { }
-                                };
-
-                                // Validating user input: "1-5, 8, 10-12" to chapter IDs
-                                const applyRangeSelection = () => {
-                                    const input = rangeInput.value.trim();
-                                    selectedChapters.value.clear();
-
-                                    if (!input) {
-                                        // Empty -> Select All
-                                        toggleSelectAll();
-                                        return;
-                                    }
-
-                                    const parts = input.split(/[,，]/); // Support en/cn comma
-                                    const allIds = new Set(chapters.value.map(c => c.id));
-
-                                    parts.forEach(part => {
-                                        part = part.trim();
-                                        if (!part) return;
-
-                                        if (part.includes('-')) {
-                                            const [start, end] = part.split('-').map(s => parseInt(s.trim()));
-                                            if (!isNaN(start) && !isNaN(end)) {
-                                                for (let i = start; i <= end; i++) {
-                                                    if (allIds.has(i)) selectedChapters.value.add(i);
-                                                }
-                                            }
-                                        } else {
-                                            const id = parseInt(part);
-                                            if (!isNaN(id) && allIds.has(id)) {
-                                                selectedChapters.value.add(id);
-                                            }
-                                        }
-                                    });
-                                };
-
-                                // Quick Start from List View
-                                const handleQuickStart = async (book) => {
-                                    const rangeStr = quickRanges.value[book.name] || "";
-                                    let idsToRun = [];
-
-                                    if (rangeStr.trim()) {
-                                        const parts = rangeStr.split(/[,，]/);
-                                        parts.forEach(part => {
-                                            part = part.trim();
-                                            if (!part) return;
-                                            if (part.includes('-')) {
-                                                const [start, end] = part.split('-').map(s => parseInt(s.trim()));
-                                                if (!isNaN(start) && !isNaN(end)) {
-                                                    for (let i = start; i <= end; i++) idsToRun.push(i);
-                                                }
-                                            } else {
-                                                const id = parseInt(part);
-                                                if (!isNaN(id)) idsToRun.push(id);
-                                            }
-                                        });
-
-                                        if (idsToRun.length === 0) {
-                                            alert("无效的章节范围格式");
-                                            return;
-                                        }
-                                    } else {
-                                        if (!confirm(`未输入范围，确定要生成 "${book.name}" 的全部章节吗？`)) return;
-                                    }
-
-                                    const payload = {
-                                        book_name: book.name,
-                                        chapter_ids: idsToRun.length > 0 ? idsToRun : undefined,
-                                        config: {
-                                            voice: config.value.voice,
-                                            rate: config.value.rate + "%",
-                                            volume: config.value.volume + "%",
-                                            pitch: config.value.pitch || "+0Hz"
-                                        }
-                                    };
-
-                                    try {
-                                        await api.post('/start', payload);
-                                        fetchBooks();
-                                    } catch (e) {
-                                        alert("启动失败: " + e.message);
-                                    }
-                                };
-
-                                // Actions
-                                const startSelected = async () => {
-                                    // Logic: If selection is empty, default to "Select All" FIRST?
-                                    // Or follow the user request "if empty default all". 
-                                    // This implies the action itself should select all if nothing is selected.
-                                    let idsToRun = Array.from(selectedChapters.value);
-                                    if (idsToRun.length === 0) {
-                                        if (confirm("未选中任何章节，是否默认生成全部章节？")) {
-                                            idsToRun = chapters.value.map(c => c.id);
-                                            // Optionally update UI selection too
-                                            chapters.value.forEach(c => selectedChapters.value.add(c.id));
-                                        } else {
-                                            return;
-                                        }
-                                    }
-
-                                    const payload = {
-                                        book_name: currentBook.value.name,
-                                        chapter_ids: idsToRun,
-                                        config: {
-                                            voice: config.value.voice,
-                                            rate: config.value.rate + "%",
-                                            volume: config.value.volume + "%",
-                                            pitch: config.value.pitch || "+0Hz"
-                                        }
-                                    };
-                                    try {
-                                        await api.post('/start', payload);
-                                        fetchTaskStatus();
-                                    } catch (e) { alert("启动失败: " + e.message); }
-                                };
-
-                                const pauseTask = async () => {
-                                    await api.post(`/pause/${currentBook.value.name}`);
-                                    fetchTaskStatus();
-                                };
-
-                                const resumeTask = async () => {
-                                    await api.post(`/resume/${currentBook.value.name}`);
-                                    fetchTaskStatus();
-                                };
-
-                                const deleteSelected = async () => {
-                                    if (!confirm(`确定要清理选中的 ${selectedChapters.value.size} 个章节吗？这会删除已生成的音频文件。`)) return;
-
-                                    try {
-                                        await api.post(`/clean/${currentBook.value.name}`, {
-                                            chapter_ids: Array.from(selectedChapters.value)
-                                        });
-                                        await fetchChapters();
-                                        selectedChapters.value.clear();
-                                    } catch (e) { alert("清理失败: " + e.message); }
-                                };
-
-                                // --- Upload ---
-                                const handleUpload = async (file) => {
-                                    if (!file) return;
-                                    uploading.value = true;
-                                    const formData = new FormData();
-                                    formData.append("file", file);
-                                    try {
-                                        await api.post('/upload', formData);
-                                        await fetchBooks();
-                                    } catch (e) {
-                                        alert("上传失败: " + e.response?.data?.detail || e.message);
-                                    } finally {
-                                        uploading.value = false;
-                                    }
-                                };
-                                const handleFileSelect = (e) => handleUpload(e.target.files[0]);
-                                const handleDrop = (e) => handleUpload(e.dataTransfer.files[0]);
-
-                                // --- Helpers ---
-                                const openFolder = async (bookName) => {
-                                    await api.post(`/open_folder?book_name=${encodeURIComponent(bookName)}`);
-                                };
-
-                                // Audio Features
-                                const downloadZip = () => {
-                                    window.open(`/api/download/${currentBook.value.name}`, '_blank');
-                                };
-
-                                const mergeAudio = async () => {
-                                    const ids = selectedChapters.value.size > 0 ? Array.from(selectedChapters.value) : null;
-                                    const msg = ids ? `确定合并选中的 ${ids.length} 个章节吗？` : "确定合并所有已完成的音频吗？";
-                                    if (!confirm(msg)) return;
-
-                                    try {
-                                        alert("正在后台合并，请稍候... 完成后将自动下载。");
-                                        const res = await api.post(`/merge/${currentBook.value.name}`, {
-                                            book_name: currentBook.value.name,
-                                            chapter_ids: ids,
-                                            config: config.value
-                                        }, { responseType: 'blob' });
-
-                                        // Download blob
-                                        const url = window.URL.createObjectURL(new Blob([res.data]));
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.setAttribute('download', `${currentBook.value.name}_merged.mp3`);
-                                        document.body.appendChild(link);
-                                        link.click();
-                                    } catch (e) {
-                                        alert("合并失败 (可能是服务器未安装 ffmpeg): " + (e.response?.data?.detail || e.message));
-                                    }
-                                };
-
-                                const previewing = ref(false);
-
-                                const testVoice = async () => {
-                                    if (previewing.value) return;
-                                    previewing.value = true;
-                                    try {
-                                        const voice = config.value.voice;
-                                        const rate = config.value.rate;
-                                        const volume = config.value.volume;
-                                        const pitch = config.value.pitch;
-
-                                        // Use new GET endpoint with params
-                                        const url = `/api/voice/preview/${voice}?rate=${encodeURIComponent(rate)}&volume=${encodeURIComponent(volume)}&pitch=${encodeURIComponent(pitch)}`;
-
-                                        // Play directly from URL
-                                        const audio = new Audio(url);
-                                        // Add error handling for audio load
-                                        audio.onerror = (e) => {
-                                            console.error("Audio playback error", e);
-                                            alert("试听播放失败，请检查网络或后端日志。");
-                                            previewing.value = false;
-                                        };
-                                        audio.onended = () => {
-                                            previewing.value = false;
-                                        };
-                                        await audio.play();
-                                    } catch (e) {
-                                        console.error("Voice test failed:", e);
-                                        alert("试听请求失败: " + e.message);
-                                        previewing.value = false;
-                                    }
-                                    // Note: previewing set to false in onended/onerror
-                                };
-
-                                // Custom Preview Logic
-                                const customText = ref("");
-                                const customPreviewing = ref(false);
-
-                                const defaultCustomPlaceholder = computed(() => {
-                                    const v = voices.value.find(v => v.ShortName === config.value.voice);
-                                    const name = v ? (v.LocalName || v.ShortName.split('-').pop().replace('Neural', '')) : "我";
-                                    return `你好，我是${name}，您可以输入文字让我试读。`;
-                                });
-
-                                const randomTexts = [
-                                    "天街小雨润如酥，草色遥看近却无。",
-                                    "据最新消息，微软发布了新一代人工智能语音技术，效果惊人。",
-                                    "你若是那含泪的射手，我便是那决心不再闪躲的白鸟。",
-                                    "今天天气真不错，适合出去走走，喝杯咖啡。",
-                                    "生活不是眼前的苟且，还有诗和远方的田野。"
-                                ];
-
-                                const setRandomText = () => {
-                                    customText.value = randomTexts[Math.floor(Math.random() * randomTexts.length)];
-                                };
-
-                                const testCustomVoice = async () => {
-                                    if (!customText.value) return;
-                                    if (customPreviewing.value) return;
-
-                                    customPreviewing.value = true;
-                                    try {
-                                        const res = await api.post('/voice/preview_custom', {
-                                            text: customText.value,
-                                            voice: config.value.voice,
-                                            rate: config.value.rate,
-                                            volume: config.value.volume,
-                                            pitch: config.value.pitch
-                                        }, { responseType: 'blob' });
-
-                                        const blob = new Blob([res.data], { type: 'audio/mpeg' });
-                                        const url = URL.createObjectURL(blob);
-                                        const audio = new Audio(url);
-
-                                        audio.onended = () => {
-                                            URL.revokeObjectURL(url);
-                                            customPreviewing.value = false;
-                                        };
-                                        audio.onerror = () => {
-                                            alert("播放失败");
-                                            customPreviewing.value = false;
-                                        }
-                                        await audio.play();
-                                    } catch (e) {
-                                        alert("生成失败: " + (e.response?.data?.detail || e.message));
-                                        customPreviewing.value = false;
-                                    }
-                                };
-
-                                const previewChapter = async (chapter) => {
-                                    try {
-                                        // Show loading state on button? Hard with current iterate.
-                                        // Just use global generic loading or toast?
-                                        // For now simple alert if slow?
-                                        console.log("Previewing chapter:", chapter.title);
-                                        // Fix: pass correct book_name and chapter_id to backend.
-                                        // Backend logic: if book_name != "preview" and chapter_id present, it fetches content.
-                                        const res = await api.post('/preview', {
-                                            book_name: currentBook.value.name,
-                                            chapter_id: chapter.id,
-                                            config: {
-                                                ...config.value,
-                                                rate: config.value.rate + "%",
-                                                volume: config.value.volume + "%",
-                                                pitch: config.value.pitch || "+0Hz"
-                                            }
-                                        }, { responseType: 'blob' });
-
-                                        const blob = new Blob([res.data], { type: 'audio/mpeg' });
-                                        const audio = new Audio(URL.createObjectURL(blob));
-                                        await audio.play();
-                                    } catch (e) {
-                                        console.error("Preview failed:", e);
-                                        alert("试听失败: " + e.message);
-                                    }
-                                };
-
-                                // Bark Notification Test
-                                const testBarkNotification = async () => {
-                                    if (!barkConfig.value.serverUrl || !barkConfig.value.apiKey) {
-                                        alert("请先填写 Bark 服务器地址和 Key");
-                                        return;
-                                    }
-
-                                    barkTesting.value = true;
-                                    try {
-                                        const res = await api.post('/bark/test', {
-                                            server_url: barkConfig.value.serverUrl,
-                                            api_key: barkConfig.value.apiKey
-                                        });
-
-                                        if (res.data.success) {
-                                            alert("✅ " + res.data.message);
-                                        } else {
-                                            alert("❌ " + res.data.message);
-                                        }
-                                    } catch (e) {
-                                        console.error("Bark test failed:", e);
-                                        alert("测试失败: " + (e.response?.data?.detail || e.message));
-                                    } finally {
-                                        barkTesting.value = false;
-                                    }
-                                };
-
-                                // Notifications
-                                const requestNotification = () => {
-                                    if ("Notification" in window && Notification.permission !== "granted") {
-                                        Notification.requestPermission();
-                                    }
-                                };
-
-                                // Watch status for notifications
-                                watch(() => currentTaskStatus.value, (newVal, oldVal) => {
-                                    if (oldVal.is_running && !newVal.is_running) {
-                                        // Finished?
-                                        // Check if all completed or any failed? 
-                                        // Simplified: Just notify "Task Stopped/Finished"
-                                        if (Notification.permission === "granted") {
-                                            new Notification("Edge TTS", { body: `任务已已停止或完成: ${currentBook.value?.name}` });
-                                        }
-                                    }
-                                }, { deep: true });
-
-                                // Watch concurrency
-                                watch(concurrency, async (newVal) => {
-                                    try {
-                                        await api.post(`/concurrency?limit=${newVal}`);
-                                    } catch (e) { console.error(e); }
-                                });
-
-                                const statusClass = (status) => {
-                                    switch (status) {
-                                        case 'completed': return 'bg-green-900 text-green-300';
-                                        case 'processing': return 'bg-blue-900 text-blue-300 animate-pulse';
-                                        default: return 'bg-gray-700 text-gray-300';
-                                    }
-                                };
-
-                                const progressPercent = (book) => {
-                                    if (book.total === 0) return 0;
-                                    return Math.round((book.completed / book.total) * 100);
-                                };
-
-                                // ==================== 配置加载和保存 ====================
-
-                                // Version Check Methods
-                                const checkVersion = async () => {
-                                    try {
-                                        const res = await api.get('/version/info');
-                                        if (res.data.update_available && res.data.update_info) {
-                                            updateInfo.value = res.data.update_info;
-                                            showUpdateModal.value = true;
-                                        }
-                                    } catch (e) {
-                                        console.error('版本检查失败:', e);
-                                    }
-                                };
-
-                                const dismissUpdate = async () => {
-                                    try {
-                                        await api.post('/version/dismiss');
-                                        showUpdateModal.value = false;
-                                        updateInfo.value = null;
-                                    } catch (e) {
-                                        console.error('忽略更新失败:', e);
-                                    }
-                                };
-
-                                const loadConfigFromBackend = async () => {
-                                    try {
-                                        const res = await api.get('/config');
-                                        if (res.data.success && res.data.config) {
-                                            const cfg = res.data.config;
-
-                                            // TTS 配置
-                                            if (cfg.tts) {
-                                                if (cfg.tts.default_voice) config.value.voice = cfg.tts.default_voice;
-                                                if (cfg.tts.default_rate) {
-                                                    rateVal.value = parseInt(cfg.tts.default_rate.replace('%', '').replace('+', ''));
-                                                }
-                                                if (cfg.tts.default_volume) {
-                                                    volumeVal.value = parseInt(cfg.tts.default_volume.replace('%', '').replace('+', ''));
-                                                }
-                                                if (cfg.tts.default_pitch) {
-                                                    pitchVal.value = parseInt(cfg.tts.default_pitch.replace('Hz', '').replace('+', ''));
-                                                }
-                                                if (cfg.tts.concurrency_limit) concurrency.value = cfg.tts.concurrency_limit;
-                                                if (cfg.tts.max_retries) maxRetries.value = cfg.tts.max_retries;
-                                                if (cfg.tts.timeout) timeout.value = cfg.tts.timeout;
-                                                if (cfg.tts.max_chars) maxChars.value = cfg.tts.max_chars;
-                                            }
-
-                                            // Bark 配置
-                                            if (cfg.bark) {
-                                                if (cfg.bark.server_url) barkConfig.value.serverUrl = cfg.bark.server_url;
-                                                if (cfg.bark.api_key) barkConfig.value.apiKey = cfg.bark.api_key;
-                                                if (cfg.bark.enabled !== undefined) barkConfig.value.enabled = cfg.bark.enabled;
-                                            }
-
-                                            console.log('✅ 配置已从后端加载');
-                                        }
-                                    } catch (e) {
-                                        console.error('加载配置失败:', e);
-                                    }
-                                };
-
-                                const saveAsDefault = async () => {
-                                    if (!confirm('确定将当前设置保存为默认配置吗?\n\n保存后,下次启动应用将使用这些参数作为默认值。')) {
-                                        return;
-                                    }
-
-                                    saving.value = true;
-                                    try {
-                                        const payload = {
-                                            tts: {
-                                                default_voice: config.value.voice,
-                                                default_rate: config.value.rate,
-                                                default_volume: config.value.volume,
-                                                default_pitch: config.value.pitch,
-                                                concurrency_limit: parseInt(concurrency.value),
-                                                max_retries: parseInt(maxRetries.value),
-                                                timeout: parseInt(timeout.value),
-                                                max_chars: parseInt(maxChars.value)
-                                            },
-                                            bark: {
-                                                enabled: barkConfig.value.enabled,
-                                                server_url: barkConfig.value.serverUrl,
-                                                api_key: barkConfig.value.apiKey
-                                            }
-                                        };
-
-                                        const res = await api.post('/config', payload);
-
-                                        if (res.data.success) {
-                                            alert('✅ 配置已保存!\n\n' + res.data.message);
-                                        } else {
-                                            alert('❌ 保存失败: ' + (res.data.message || '未知错误'));
-                                        }
-                                    } catch (e) {
-                                        console.error('保存配置失败:', e);
-                                        let errorMsg = '保存失败';
-                                        if (e.response?.data?.detail) {
-                                            if (typeof e.response.data.detail === 'object') {
-                                                // 验证错误
-                                                const errors = e.response.data.detail.errors || {};
-                                                errorMsg = '参数验证失败:\n\n';
-                                                for (const [field, msg] of Object.entries(errors)) {
-                                                    errorMsg += `- ${field}: ${msg}\n`;
-                                                }
-                                            } else {
-                                                errorMsg = e.response.data.detail;
-                                            }
-                                        }
-                                        alert('❌ ' + errorMsg);
-                                    } finally {
-                                        saving.value = false;
-                                    }
-                                };
-
-                                // Lifecycle
-                                let pollTimer;
-                                const startPolling = () => {
-                                    pollTimer = setInterval(() => {
-                                        if (viewMode.value === 'list') {
-                                            fetchBooks();
-                                        } else {
-                                            fetchChapters();
-                                            fetchTaskStatus();
-                                            fetchLogs();
-                                        }
-                                    }, 2000);
-                                };
-
-                                onMounted(async () => {
-                                    await loadConfigFromBackend();
-                                    await fetchBooks();
-                                    await fetchVoices();
-                                    startPolling();
-
-                                    // 延迟检查版本更新
-                                    setTimeout(checkVersion, 3000);
-                                });
-
-                                onBeforeUnmount(() => {
-                                    clearInterval(pollTimer);
-                                });
-
-                                return {
-                                    // State
-                                    viewMode, currentBook, books, chapters, selectedChapters, voices,
-                                    currentTaskStatus, currentChapterIds,
-                                    uploading, fileInput,
-                                    rateVal, volumeVal, pitchVal, concurrency, config,
-                                    barkConfig, barkTesting,
-                                    showAdvanced, maxRetries, timeout, maxChars, saving,
-                                    reloadingConfig, lastReloadTime,
-                                    updateInfo, showUpdateModal,
-                                    isAllSelected, rangeInput, quickRanges,
-                                    showLogs, logs, logContainer,
-                                    customText, customPreviewing, defaultCustomPlaceholder, previewing,
-
-                                    // Methods
-                                    fetchBooks, fetchVoices, updateConcurrency, fetchLogs,
-                                    enterDetail, fetchChapters, fetchTaskStatus,
-                                    handleUpload, handleFileSelect, handleDrop,
-                                    toggleChapter, toggleSelectAll, applyRangeSelection, handleQuickStart,
-                                    deleteSelected, startSelected, pauseTask, resumeTask,
-                                    resetConfig, reloadConfig,
-                                    testVoice, previewChapter, testCustomVoice, setRandomText,
-                                    downloadZip, mergeAudio, openFolder,
-                                    testBarkNotification, saveAsDefault, loadConfigFromBackend,
-                                    checkVersion, dismissUpdate,
-                                    statusClass, progressPercent
-                                };
+                </div>
+
+                <!-- 按钮 -->
+                <div class="flex gap-3 mt-6">
+                    <button @click="dismissUpdate"
+                        class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors">
+                        稍后提醒
+                    </button>
+                    <a v-if="updateInfo" :href="`https://pypi.org/project/${updateInfo.package}/`" target="_blank"
+                        class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded text-center transition-colors">
+                        查看详情
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch, onBeforeUnmount } = Vue;
+
+        createApp({
+            setup() {
+                // UI State
+                const viewMode = ref('list'); // 'list' | 'detail'
+                const currentBook = ref(null);
+
+                // Data
+                const books = ref([]);
+                const chapters = ref([]);
+                const selectedChapters = ref(new Set());
+                const voices = ref([]);
+
+                // Status
+                const currentTaskStatus = ref({ is_running: false, is_paused: false, current_chapter: [] });
+                const currentChapterIds = computed(() => currentTaskStatus.value.current_chapter || []);
+
+                // Upload
+                const uploading = ref(false);
+                const fileInput = ref(null);
+
+                // Config
+                const rateVal = ref(0);
+                const volumeVal = ref(0);
+                const pitchVal = ref(0);
+                const concurrency = ref(2);
+                const config = ref({
+                    voice: "zh-CN-XiaoxiaoNeural",
+                    rate: "+0%",
+                    volume: "+0%",
+                    pitch: "+0Hz"
+                });
+
+                // Bark Notification Config
+                const barkConfig = ref({
+                    serverUrl: "",
+                    apiKey: "",
+                    enabled: false
+                });
+                const barkTesting = ref(false);
+
+                // Advanced Settings
+                const showAdvanced = ref(false);
+                const maxRetries = ref(3);
+                const timeout = ref(30);
+                const maxChars = ref(8000);
+                const saving = ref(false);
+
+                // Config Reload
+                const reloadingConfig = ref(false);
+                const lastReloadTime = ref('');
+
+                // Version Check
+                const updateInfo = ref(null);
+                const showUpdateModal = ref(false);
+
+                // Computed
+                watch(rateVal, (val) => config.value.rate = (val >= 0 ? "+" : "") + val + "%"); // Explicitly append % for display/logic if needed, though input handles number
+                watch(volumeVal, (val) => config.value.volume = (val >= 0 ? "+" : "") + val + "%");
+                watch(pitchVal, (val) => config.value.pitch = (val >= 0 ? "+" : "") + val + "Hz");
+
+                const resetConfig = () => {
+                    rateVal.value = 0;
+                    volumeVal.value = 0;
+                    pitchVal.value = 0;
+                    concurrency.value = 2; // Optional: Reset concurrency too? Keep it separate maybe? Or include it? 
+                    // Let's reset pitch/rate/volume only as they are the main "config" params
+                };
+
+                const reloadConfig = async () => {
+                    if (reloadingConfig.value) return;
+
+                    reloadingConfig.value = true;
+
+                    try {
+                        const res = await api.post('/config/reload');
+
+                        if (res.data.success) {
+                            // 更新 TTS 配置
+                            if (res.data.config.tts) {
+                                const tts = res.data.config.tts;
+
+                                // 更新语音
+                                if (tts.default_voice) {
+                                    config.value.voice = tts.default_voice;
+                                }
+
+                                // 更新语速
+                                if (tts.default_rate) {
+                                    const rate = parseInt(tts.default_rate.replace('%', '').replace('+', ''));
+                                    rateVal.value = rate;
+                                }
+
+                                // 更新音量
+                                if (tts.default_volume) {
+                                    const volume = parseInt(tts.default_volume.replace('%', '').replace('+', ''));
+                                    volumeVal.value = volume;
+                                }
+
+                                // 更新音调
+                                if (tts.default_pitch) {
+                                    const pitch = parseInt(tts.default_pitch.replace('Hz', '').replace('+', ''));
+                                    pitchVal.value = pitch;
+                                }
+
+                                // 更新并发数
+                                if (tts.concurrency_limit) {
+                                    concurrency.value = tts.concurrency_limit;
+                                }
+
+                                // 更新高级设置
+                                if (tts.max_retries !== undefined) {
+                                    maxRetries.value = tts.max_retries;
+                                }
+                                if (tts.timeout !== undefined) {
+                                    timeout.value = tts.timeout;
+                                }
+                                if (tts.max_chars !== undefined) {
+                                    maxChars.value = tts.max_chars;
+                                }
                             }
-                        }).mount('#app');
-                    </script>
+
+                            // 更新 Bark 配置
+                            if (res.data.config.bark) {
+                                const bark = res.data.config.bark;
+                                barkConfig.value.enabled = bark.enabled || false;
+                                barkConfig.value.serverUrl = bark.server_url || '';
+                                barkConfig.value.apiKey = bark.api_key || '';
+                            }
+
+                            // 更新语音列表
+                            if (res.data.config.voices && res.data.config.voices.length > 0) {
+                                voices.value = res.data.config.voices.map(v => ({
+                                    ShortName: v.short_name,
+                                    Gender: v.gender_cn || v.gender,
+                                    Style: v.style,
+                                    Description: v.description
+                                }));
+                            }
+
+                            // 更新时间戳
+                            lastReloadTime.value = new Date().toLocaleTimeString('zh-CN');
+
+                            // 显示成功提示
+                            alert('✅ ' + (res.data.message || '配置已从磁盘同步成功'));
+
+                            // 如果有变更,在控制台显示
+                            if (res.data.changes && Object.keys(res.data.changes).length > 0) {
+                                console.log('[NovelVoice] Config changes:', res.data.changes);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[NovelVoice] Config reload failed:', error);
+                        const message = error.response?.data?.detail || '配置重载失败';
+                        alert('❌ ' + message);
+                    } finally {
+                        reloadingConfig.value = false;
+                    }
+                };
+
+                const isAllSelected = computed(() => {
+                    return chapters.value.length > 0 && selectedChapters.value.size === chapters.value.length;
+                });
+
+                const selectedProgress = computed(() => {
+                    if (selectedChapters.value.size === 0) return 0;
+                    const completed = chapters.value.filter(c => selectedChapters.value.has(c.id) && c.status === 'completed').length;
+                    return Math.round((completed / selectedChapters.value.size) * 100);
+                });
+
+                // API
+                const api = axios.create({ baseURL: '/api' });
+
+                // --- Methods ---
+
+                const fetchBooks = async () => {
+                    try {
+                        const res = await api.get('/books');
+                        books.value = res.data;
+                    } catch (e) { console.error(e); }
+                };
+
+                const fetchVoices = async () => {
+                    const res = await api.get('/voices');
+                    voices.value = res.data;
+                };
+
+                const updateConcurrency = async () => {
+                    await api.post(`/concurrency?limit=${concurrency.value}`);
+                };
+
+                // Chapter Management
+                const enterDetail = async (book) => {
+                    currentBook.value = book;
+                    viewMode.value = 'detail';
+                    selectedChapters.value.clear(); // Clear selection on enter? Or keep? Let's clear for now.
+                    await fetchChapters();
+                    await fetchTaskStatus();
+                };
+
+                const fetchChapters = async () => {
+                    if (!currentBook.value) return;
+                    try {
+                        const res = await api.get(`/chapters/${currentBook.value.name}`);
+                        chapters.value = res.data;
+                    } catch (e) { console.error(e); }
+                };
+
+                const fetchTaskStatus = async () => {
+                    if (!currentBook.value) return;
+                    try {
+                        const res = await api.get(`/status/${currentBook.value.name}`);
+                        currentTaskStatus.value = res.data;
+                    } catch (e) { }
+                };
+
+                const toggleChapter = (id) => {
+                    if (selectedChapters.value.has(id)) selectedChapters.value.delete(id);
+                    else selectedChapters.value.add(id);
+                };
+
+                const toggleSelectAll = () => {
+                    if (isAllSelected.value) {
+                        selectedChapters.value.clear();
+                    } else {
+                        chapters.value.forEach(c => selectedChapters.value.add(c.id));
+                    }
+                };
+
+                const rangeInput = ref("");
+                const quickRanges = ref({});
+
+                // Logs
+                const showLogs = ref(false);
+                const logs = ref([]);
+                const logContainer = ref(null);
+
+                // Auto-scroll logs
+                watch(logs, async () => {
+                    if (showLogs.value && logContainer.value) {
+                        await Vue.nextTick();
+                        logContainer.value.scrollTop = logContainer.value.scrollHeight;
+                    }
+                }, { deep: true });
+
+                // Auto-fetch logs when opened
+                watch(showLogs, (val) => {
+                    if (val) fetchLogs();
+                });
+
+                const fetchLogs = async () => {
+                    if (!currentBook.value || !showLogs.value) return;
+                    try {
+                        const res = await api.get(`/logs/${currentBook.value.name}`);
+                        // Only update if length changed or we want to force refresh. 
+                        // To avoid jitter, we could check last log timestamp, but this is simple.
+                        // Actually, just replacing provides latest state.
+                        if (JSON.stringify(res.data.logs) !== JSON.stringify(logs.value)) {
+                            logs.value = res.data.logs;
+                        }
+                    } catch (e) { }
+                };
+
+                // Validating user input: "1-5, 8, 10-12" to chapter IDs
+                const applyRangeSelection = () => {
+                    const input = rangeInput.value.trim();
+                    selectedChapters.value.clear();
+
+                    if (!input) {
+                        // Empty -> Select All
+                        toggleSelectAll();
+                        return;
+                    }
+
+                    const parts = input.split(/[,，]/); // Support en/cn comma
+                    const allIds = new Set(chapters.value.map(c => c.id));
+
+                    parts.forEach(part => {
+                        part = part.trim();
+                        if (!part) return;
+
+                        if (part.includes('-')) {
+                            const [start, end] = part.split('-').map(s => parseInt(s.trim()));
+                            if (!isNaN(start) && !isNaN(end)) {
+                                for (let i = start; i <= end; i++) {
+                                    if (allIds.has(i)) selectedChapters.value.add(i);
+                                }
+                            }
+                        } else {
+                            const id = parseInt(part);
+                            if (!isNaN(id) && allIds.has(id)) {
+                                selectedChapters.value.add(id);
+                            }
+                        }
+                    });
+                };
+
+                // Quick Start from List View
+                const handleQuickStart = async (book) => {
+                    const rangeStr = quickRanges.value[book.name] || "";
+                    let idsToRun = [];
+
+                    if (rangeStr.trim()) {
+                        const parts = rangeStr.split(/[,，]/);
+                        parts.forEach(part => {
+                            part = part.trim();
+                            if (!part) return;
+                            if (part.includes('-')) {
+                                const [start, end] = part.split('-').map(s => parseInt(s.trim()));
+                                if (!isNaN(start) && !isNaN(end)) {
+                                    for (let i = start; i <= end; i++) idsToRun.push(i);
+                                }
+                            } else {
+                                const id = parseInt(part);
+                                if (!isNaN(id)) idsToRun.push(id);
+                            }
+                        });
+
+                        if (idsToRun.length === 0) {
+                            alert("无效的章节范围格式");
+                            return;
+                        }
+                    } else {
+                        if (!confirm(`未输入范围，确定要生成 "${book.name}" 的全部章节吗？`)) return;
+                    }
+
+                    const payload = {
+                        book_name: book.name,
+                        chapter_ids: idsToRun.length > 0 ? idsToRun : undefined,
+                        config: {
+                            voice: config.value.voice,
+                            rate: config.value.rate + "%",
+                            volume: config.value.volume + "%",
+                            pitch: config.value.pitch || "+0Hz"
+                        }
+                    };
+
+                    try {
+                        await api.post('/start', payload);
+                        fetchBooks();
+                    } catch (e) {
+                        alert("启动失败: " + e.message);
+                    }
+                };
+
+                // Actions
+                const startSelected = async () => {
+                    // Logic: If selection is empty, default to "Select All" FIRST?
+                    // Or follow the user request "if empty default all". 
+                    // This implies the action itself should select all if nothing is selected.
+                    let idsToRun = Array.from(selectedChapters.value);
+                    if (idsToRun.length === 0) {
+                        if (confirm("未选中任何章节，是否默认生成全部章节？")) {
+                            idsToRun = chapters.value.map(c => c.id);
+                            // Optionally update UI selection too
+                            chapters.value.forEach(c => selectedChapters.value.add(c.id));
+                        } else {
+                            return;
+                        }
+                    }
+
+                    const payload = {
+                        book_name: currentBook.value.name,
+                        chapter_ids: idsToRun,
+                        config: {
+                            voice: config.value.voice,
+                            rate: config.value.rate + "%",
+                            volume: config.value.volume + "%",
+                            pitch: config.value.pitch || "+0Hz"
+                        }
+                    };
+                    try {
+                        await api.post('/start', payload);
+                        fetchTaskStatus();
+                    } catch (e) { alert("启动失败: " + e.message); }
+                };
+
+                const pauseTask = async () => {
+                    await api.post(`/pause/${currentBook.value.name}`);
+                    fetchTaskStatus();
+                };
+
+                const resumeTask = async () => {
+                    await api.post(`/resume/${currentBook.value.name}`);
+                    fetchTaskStatus();
+                };
+
+                const deleteSelected = async () => {
+                    if (!confirm(`确定要清理选中的 ${selectedChapters.value.size} 个章节吗？这会删除已生成的音频文件。`)) return;
+
+                    try {
+                        await api.post(`/clean/${currentBook.value.name}`, {
+                            chapter_ids: Array.from(selectedChapters.value)
+                        });
+                        await fetchChapters();
+                        selectedChapters.value.clear();
+                    } catch (e) { alert("清理失败: " + e.message); }
+                };
+
+                // --- Upload ---
+                const handleUpload = async (file) => {
+                    if (!file) return;
+                    uploading.value = true;
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    try {
+                        await api.post('/upload', formData);
+                        await fetchBooks();
+                    } catch (e) {
+                        alert("上传失败: " + e.response?.data?.detail || e.message);
+                    } finally {
+                        uploading.value = false;
+                    }
+                };
+                const handleFileSelect = (e) => handleUpload(e.target.files[0]);
+                const handleDrop = (e) => handleUpload(e.dataTransfer.files[0]);
+
+                // --- Helpers ---
+                const openFolder = async (bookName) => {
+                    await api.post(`/open_folder?book_name=${encodeURIComponent(bookName)}`);
+                };
+
+                // Audio Features
+                const downloadZip = () => {
+                    window.open(`/api/download/${currentBook.value.name}`, '_blank');
+                };
+
+                const mergeAudio = async () => {
+                    const ids = selectedChapters.value.size > 0 ? Array.from(selectedChapters.value) : null;
+                    const msg = ids ? `确定合并选中的 ${ids.length} 个章节吗？` : "确定合并所有已完成的音频吗？";
+                    if (!confirm(msg)) return;
+
+                    try {
+                        alert("正在后台合并，请稍候... 完成后将自动下载。");
+                        const res = await api.post(`/merge/${currentBook.value.name}`, {
+                            book_name: currentBook.value.name,
+                            chapter_ids: ids,
+                            config: config.value
+                        }, { responseType: 'blob' });
+
+                        // Download blob
+                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `${currentBook.value.name}_merged.mp3`);
+                        document.body.appendChild(link);
+                        link.click();
+                    } catch (e) {
+                        alert("合并失败 (可能是服务器未安装 ffmpeg): " + (e.response?.data?.detail || e.message));
+                    }
+                };
+
+                const previewing = ref(false);
+
+                const testVoice = async () => {
+                    if (previewing.value) return;
+                    previewing.value = true;
+                    try {
+                        const voice = config.value.voice;
+                        const rate = config.value.rate;
+                        const volume = config.value.volume;
+                        const pitch = config.value.pitch;
+
+                        // Use new GET endpoint with params
+                        const url = `/api/voice/preview/${voice}?rate=${encodeURIComponent(rate)}&volume=${encodeURIComponent(volume)}&pitch=${encodeURIComponent(pitch)}`;
+
+                        // Play directly from URL
+                        const audio = new Audio(url);
+                        // Add error handling for audio load
+                        audio.onerror = (e) => {
+                            console.error("Audio playback error", e);
+                            alert("试听播放失败，请检查网络或后端日志。");
+                            previewing.value = false;
+                        };
+                        audio.onended = () => {
+                            previewing.value = false;
+                        };
+                        await audio.play();
+                    } catch (e) {
+                        console.error("Voice test failed:", e);
+                        alert("试听请求失败: " + e.message);
+                        previewing.value = false;
+                    }
+                    // Note: previewing set to false in onended/onerror
+                };
+
+                // Custom Preview Logic
+                const customText = ref("");
+                const customPreviewing = ref(false);
+
+                const defaultCustomPlaceholder = computed(() => {
+                    const v = voices.value.find(v => v.ShortName === config.value.voice);
+                    const name = v ? (v.LocalName || v.ShortName.split('-').pop().replace('Neural', '')) : "我";
+                    return `你好，我是${name}，您可以输入文字让我试读。`;
+                });
+
+                const randomTexts = [
+                    "天街小雨润如酥，草色遥看近却无。",
+                    "据最新消息，微软发布了新一代人工智能语音技术，效果惊人。",
+                    "你若是那含泪的射手，我便是那决心不再闪躲的白鸟。",
+                    "今天天气真不错，适合出去走走，喝杯咖啡。",
+                    "生活不是眼前的苟且，还有诗和远方的田野。"
+                ];
+
+                const setRandomText = () => {
+                    customText.value = randomTexts[Math.floor(Math.random() * randomTexts.length)];
+                };
+
+                const testCustomVoice = async () => {
+                    if (!customText.value) return;
+                    if (customPreviewing.value) return;
+
+                    customPreviewing.value = true;
+                    try {
+                        const res = await api.post('/voice/preview_custom', {
+                            text: customText.value,
+                            voice: config.value.voice,
+                            rate: config.value.rate,
+                            volume: config.value.volume,
+                            pitch: config.value.pitch
+                        }, { responseType: 'blob' });
+
+                        const blob = new Blob([res.data], { type: 'audio/mpeg' });
+                        const url = URL.createObjectURL(blob);
+                        const audio = new Audio(url);
+
+                        audio.onended = () => {
+                            URL.revokeObjectURL(url);
+                            customPreviewing.value = false;
+                        };
+                        audio.onerror = () => {
+                            alert("播放失败");
+                            customPreviewing.value = false;
+                        }
+                        await audio.play();
+                    } catch (e) {
+                        alert("生成失败: " + (e.response?.data?.detail || e.message));
+                        customPreviewing.value = false;
+                    }
+                };
+
+                const previewChapter = async (chapter) => {
+                    try {
+                        // Show loading state on button? Hard with current iterate.
+                        // Just use global generic loading or toast?
+                        // For now simple alert if slow?
+                        console.log("Previewing chapter:", chapter.title);
+                        // Fix: pass correct book_name and chapter_id to backend.
+                        // Backend logic: if book_name != "preview" and chapter_id present, it fetches content.
+                        const res = await api.post('/preview', {
+                            book_name: currentBook.value.name,
+                            chapter_id: chapter.id,
+                            config: {
+                                ...config.value,
+                                rate: config.value.rate + "%",
+                                volume: config.value.volume + "%",
+                                pitch: config.value.pitch || "+0Hz"
+                            }
+                        }, { responseType: 'blob' });
+
+                        const blob = new Blob([res.data], { type: 'audio/mpeg' });
+                        const audio = new Audio(URL.createObjectURL(blob));
+                        await audio.play();
+                    } catch (e) {
+                        console.error("Preview failed:", e);
+                        alert("试听失败: " + e.message);
+                    }
+                };
+
+                // Bark Notification Test
+                const testBarkNotification = async () => {
+                    if (!barkConfig.value.serverUrl || !barkConfig.value.apiKey) {
+                        alert("请先填写 Bark 服务器地址和 Key");
+                        return;
+                    }
+
+                    barkTesting.value = true;
+                    try {
+                        const res = await api.post('/bark/test', {
+                            server_url: barkConfig.value.serverUrl,
+                            api_key: barkConfig.value.apiKey
+                        });
+
+                        if (res.data.success) {
+                            alert("✅ " + res.data.message);
+                        } else {
+                            alert("❌ " + res.data.message);
+                        }
+                    } catch (e) {
+                        console.error("Bark test failed:", e);
+                        alert("测试失败: " + (e.response?.data?.detail || e.message));
+                    } finally {
+                        barkTesting.value = false;
+                    }
+                };
+
+                // Notifications
+                const requestNotification = () => {
+                    if ("Notification" in window && Notification.permission !== "granted") {
+                        Notification.requestPermission();
+                    }
+                };
+
+                // Watch status for notifications
+                watch(() => currentTaskStatus.value, (newVal, oldVal) => {
+                    if (oldVal.is_running && !newVal.is_running) {
+                        // Finished?
+                        // Check if all completed or any failed? 
+                        // Simplified: Just notify "Task Stopped/Finished"
+                        if (Notification.permission === "granted") {
+                            new Notification("Edge TTS", { body: `任务已已停止或完成: ${currentBook.value?.name}` });
+                        }
+                    }
+                }, { deep: true });
+
+                // Watch concurrency
+                watch(concurrency, async (newVal) => {
+                    try {
+                        await api.post(`/concurrency?limit=${newVal}`);
+                    } catch (e) { console.error(e); }
+                });
+
+                const statusClass = (status) => {
+                    switch (status) {
+                        case 'completed': return 'bg-green-900 text-green-300';
+                        case 'processing': return 'bg-blue-900 text-blue-300 animate-pulse';
+                        default: return 'bg-gray-700 text-gray-300';
+                    }
+                };
+
+                const progressPercent = (book) => {
+                    if (book.total === 0) return 0;
+                    return Math.round((book.completed / book.total) * 100);
+                };
+
+                // ==================== 配置加载和保存 ====================
+
+                // Version Check Methods
+                const checkVersion = async () => {
+                    try {
+                        const res = await api.get('/version/info');
+                        if (res.data.update_available && res.data.update_info) {
+                            updateInfo.value = res.data.update_info;
+                            showUpdateModal.value = true;
+                        }
+                    } catch (e) {
+                        console.error('版本检查失败:', e);
+                    }
+                };
+
+                const dismissUpdate = async () => {
+                    try {
+                        await api.post('/version/dismiss');
+                        showUpdateModal.value = false;
+                        updateInfo.value = null;
+                    } catch (e) {
+                        console.error('忽略更新失败:', e);
+                    }
+                };
+
+                const loadConfigFromBackend = async () => {
+                    try {
+                        const res = await api.get('/config');
+                        if (res.data.success && res.data.config) {
+                            const cfg = res.data.config;
+
+                            // TTS 配置
+                            if (cfg.tts) {
+                                if (cfg.tts.default_voice) config.value.voice = cfg.tts.default_voice;
+                                if (cfg.tts.default_rate) {
+                                    rateVal.value = parseInt(cfg.tts.default_rate.replace('%', '').replace('+', ''));
+                                }
+                                if (cfg.tts.default_volume) {
+                                    volumeVal.value = parseInt(cfg.tts.default_volume.replace('%', '').replace('+', ''));
+                                }
+                                if (cfg.tts.default_pitch) {
+                                    pitchVal.value = parseInt(cfg.tts.default_pitch.replace('Hz', '').replace('+', ''));
+                                }
+                                if (cfg.tts.concurrency_limit) concurrency.value = cfg.tts.concurrency_limit;
+                                if (cfg.tts.max_retries) maxRetries.value = cfg.tts.max_retries;
+                                if (cfg.tts.timeout) timeout.value = cfg.tts.timeout;
+                                if (cfg.tts.max_chars) maxChars.value = cfg.tts.max_chars;
+                            }
+
+                            // Bark 配置
+                            if (cfg.bark) {
+                                if (cfg.bark.server_url) barkConfig.value.serverUrl = cfg.bark.server_url;
+                                if (cfg.bark.api_key) barkConfig.value.apiKey = cfg.bark.api_key;
+                                if (cfg.bark.enabled !== undefined) barkConfig.value.enabled = cfg.bark.enabled;
+                            }
+
+                            console.log('✅ 配置已从后端加载');
+                        }
+                    } catch (e) {
+                        console.error('加载配置失败:', e);
+                    }
+                };
+
+                const saveAsDefault = async () => {
+                    if (!confirm('确定将当前设置保存为默认配置吗?\n\n保存后,下次启动应用将使用这些参数作为默认值。')) {
+                        return;
+                    }
+
+                    saving.value = true;
+                    try {
+                        const payload = {
+                            tts: {
+                                default_voice: config.value.voice,
+                                default_rate: config.value.rate,
+                                default_volume: config.value.volume,
+                                default_pitch: config.value.pitch,
+                                concurrency_limit: parseInt(concurrency.value),
+                                max_retries: parseInt(maxRetries.value),
+                                timeout: parseInt(timeout.value),
+                                max_chars: parseInt(maxChars.value)
+                            },
+                            bark: {
+                                enabled: barkConfig.value.enabled,
+                                server_url: barkConfig.value.serverUrl,
+                                api_key: barkConfig.value.apiKey
+                            }
+                        };
+
+                        const res = await api.post('/config', payload);
+
+                        if (res.data.success) {
+                            alert('✅ 配置已保存!\n\n' + res.data.message);
+                        } else {
+                            alert('❌ 保存失败: ' + (res.data.message || '未知错误'));
+                        }
+                    } catch (e) {
+                        console.error('保存配置失败:', e);
+                        let errorMsg = '保存失败';
+                        if (e.response?.data?.detail) {
+                            if (typeof e.response.data.detail === 'object') {
+                                // 验证错误
+                                const errors = e.response.data.detail.errors || {};
+                                errorMsg = '参数验证失败:\n\n';
+                                for (const [field, msg] of Object.entries(errors)) {
+                                    errorMsg += `- ${field}: ${msg}\n`;
+                                }
+                            } else {
+                                errorMsg = e.response.data.detail;
+                            }
+                        }
+                        alert('❌ ' + errorMsg);
+                    } finally {
+                        saving.value = false;
+                    }
+                };
+
+                // Lifecycle
+                let pollTimer;
+                const startPolling = () => {
+                    pollTimer = setInterval(() => {
+                        if (viewMode.value === 'list') {
+                            fetchBooks();
+                        } else {
+                            fetchChapters();
+                            fetchTaskStatus();
+                            fetchLogs();
+                        }
+                    }, 2000);
+                };
+
+                onMounted(async () => {
+                    await loadConfigFromBackend();
+                    await fetchBooks();
+                    await fetchVoices();
+                    startPolling();
+
+                    // 延迟检查版本更新
+                    setTimeout(checkVersion, 3000);
+                });
+
+                onBeforeUnmount(() => {
+                    clearInterval(pollTimer);
+                });
+
+                return {
+                    // State
+                    viewMode, currentBook, books, chapters, selectedChapters, voices,
+                    currentTaskStatus, currentChapterIds,
+                    uploading, fileInput,
+                    rateVal, volumeVal, pitchVal, concurrency, config,
+                    barkConfig, barkTesting,
+                    showAdvanced, maxRetries, timeout, maxChars, saving,
+                    reloadingConfig, lastReloadTime,
+                    updateInfo, showUpdateModal,
+                    isAllSelected, rangeInput, quickRanges,
+                    showLogs, logs, logContainer,
+                    customText, customPreviewing, defaultCustomPlaceholder, previewing,
+
+                    // Methods
+                    fetchBooks, fetchVoices, updateConcurrency, fetchLogs,
+                    enterDetail, fetchChapters, fetchTaskStatus,
+                    handleUpload, handleFileSelect, handleDrop,
+                    toggleChapter, toggleSelectAll, applyRangeSelection, handleQuickStart,
+                    deleteSelected, startSelected, pauseTask, resumeTask,
+                    resetConfig, reloadConfig,
+                    testVoice, previewChapter, testCustomVoice, setRandomText,
+                    downloadZip, mergeAudio, openFolder,
+                    testBarkNotification, saveAsDefault, loadConfigFromBackend,
+                    checkVersion, dismissUpdate,
+                    statusClass, progressPercent
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 
 </html>
