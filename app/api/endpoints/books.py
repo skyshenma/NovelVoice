@@ -23,6 +23,23 @@ from typing import List
 
 router = APIRouter()
 
+def get_book_dir(book_name: str) -> pathlib.Path:
+    """获取书籍音频目录，处理末尾空格的兼容性"""
+    # 1. 尝试完全匹配
+    path = APP_DATA_DIR / f"{book_name}_audio"
+    if path.exists():
+        return path
+        
+    # 2. 如果不匹配，尝试修剪 (trim) 后的匹配
+    trimmed_name = book_name.strip()
+    if trimmed_name != book_name:
+        path = APP_DATA_DIR / f"{trimmed_name}_audio"
+        if path.exists():
+            return path
+            
+    # 3. 实在找不到，返回常规路径（即使不存在）
+    return APP_DATA_DIR / f"{book_name}_audio"
+
 def get_book_status(book_dir: pathlib.Path, book_name: str):
     from app.db.database import db
     try:
@@ -64,7 +81,8 @@ async def list_books():
         
     for item in APP_DATA_DIR.iterdir():
         if item.is_dir() and item.name.endswith("_audio"):
-            book_name = item.name.replace("_audio", "")
+            # Trim book_name to remove potential trailing spaces from filesystem
+            book_name = item.name.replace("_audio", "").strip()
             status_info = get_book_status(item, book_name)
             books.append({
                 "name": book_name,
@@ -137,10 +155,8 @@ async def delete_book(book_name: str):
 
 @router.get("/chapters/{book_name}")
 async def list_chapters_api(book_name: str):
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    book_dir = get_book_dir(book_name)
     if not book_dir.exists():
-        # 如果目录不存在，检查数据库（可能目录被删了但库还在？）
-        # 这里还是保持一致性，如果文件夹不在也不应该有任务
         raise HTTPException(status_code=404, detail="Book not found")
         
     from app.db.database import db
@@ -154,7 +170,7 @@ async def list_chapters_api(book_name: str):
 
         # Return full details
         return [{
-            "id": row['chapter_index'], # 注意：DB里的 id 是 string ID，前端可能期待 int index
+            "id": row['chapter_index'],
             "title": row['title'],
             "status": row['status'],
             "length": len(row['content']) if row['content'] else 0
@@ -167,7 +183,7 @@ class CleanRequest(BaseModel):
 
 @router.post("/clean/{book_name}")
 async def clean_chapters(book_name: str, request: CleanRequest):
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    book_dir = get_book_dir(book_name)
     if not book_dir.exists():
          raise HTTPException(status_code=404, detail="Book not found")
          
@@ -195,14 +211,11 @@ async def clean_chapters(book_name: str, request: CleanRequest):
 
         cleaned_count = 0
         for row in rows:
-            # Delete file
-            # 优先使用数据库记录的路径
             if row['audio_path']:
                 file_path = book_dir / row['audio_path']
                 if file_path.exists():
                     file_path.unlink()
             else:
-                # 备用方案: 构造文件名
                 safe_title = str(row['title']).replace("/", "_").replace("\\", "_")
                 filename = f"{row['chapter_index']:04d}-{safe_title}.mp3"
                 file_path = book_dir / filename
@@ -222,7 +235,7 @@ async def clean_chapters(book_name: str, request: CleanRequest):
 
 @router.post("/open_folder")
 async def open_folder_api(book_name: str = Query(...)):
-    path = APP_DATA_DIR / f"{book_name}_audio"
+    path = get_book_dir(book_name)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Folder not found")
         
@@ -242,7 +255,7 @@ async def open_folder_api(book_name: str = Query(...)):
 @router.get("/files/{book_name}")
 async def list_audio_files(book_name: str):
     """获取书籍的所有音频文件列表"""
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    book_dir = get_book_dir(book_name)
     if not book_dir.exists():
         raise HTTPException(status_code=404, detail="Book not found")
     
@@ -270,7 +283,7 @@ async def list_audio_files(book_name: str):
 @router.get("/file/{book_name}/{file_id}")
 async def download_single_file(book_name: str, file_id: int):
     """下载单个音频文件"""
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    book_dir = get_book_dir(book_name)
     if not book_dir.exists():
         raise HTTPException(status_code=404, detail="Book not found")
     
@@ -288,7 +301,7 @@ async def download_single_file(book_name: str, file_id: int):
 async def download_book_audio(book_name: str):
     """打包下载音频"""
     # Locate book dir
-    target_dir = APP_DATA_DIR / f"{book_name}_audio"
+    target_dir = get_book_dir(book_name)
             
     if not target_dir.exists():
         raise HTTPException(status_code=404, detail="Book directory not found")
@@ -312,7 +325,7 @@ async def download_book_audio(book_name: str):
 @router.post("/merge/{book_name}")
 async def merge_audio(book_name: str, request: GenerateRequest): 
     """合并音频"""
-    target_dir = APP_DATA_DIR / f"{book_name}_audio"
+    target_dir = get_book_dir(book_name)
             
     if not target_dir.exists():
         raise HTTPException(status_code=404, detail="Book directory not found")

@@ -1123,7 +1123,7 @@
                 const fetchChapters = async () => {
                     if (!currentBook.value) return;
                     try {
-                        const res = await api.get(`/chapters/${currentBook.value.name}`);
+                        const res = await api.get(`/chapters/${encodeURIComponent(currentBook.value.name)}`);
                         chapters.value = res.data;
                     } catch (e) { console.error(e); }
                 };
@@ -1131,7 +1131,7 @@
                 const fetchTaskStatus = async () => {
                     if (!currentBook.value) return;
                     try {
-                        const res = await api.get(`/status/${currentBook.value.name}`);
+                        const res = await api.get(`/status/${encodeURIComponent(currentBook.value.name)}`);
                         currentTaskStatus.value = res.data;
                     } catch (e) { }
                 };
@@ -1269,12 +1269,12 @@
                 };
 
                 const pauseTask = async () => {
-                    await api.post(`/pause/${currentBook.value.name}`);
+                    await api.post(`/pause/${encodeURIComponent(currentBook.value.name)}`);
                     fetchTaskStatus();
                 };
 
                 const resumeTask = async () => {
-                    await api.post(`/resume/${currentBook.value.name}`);
+                    await api.post(`/resume/${encodeURIComponent(currentBook.value.name)}`);
                     fetchTaskStatus();
                 };
 
@@ -1282,7 +1282,7 @@
                     if (!confirm(`确定要清理选中的 ${selectedChapters.value.size} 个章节吗？这会删除已生成的音频文件。`)) return;
 
                     try {
-                        await api.post(`/clean/${currentBook.value.name}`, {
+                        await api.post(`/clean/${encodeURIComponent(currentBook.value.name)}`, {
                             chapter_ids: Array.from(selectedChapters.value)
                         });
                         await fetchChapters();
@@ -1411,7 +1411,7 @@
 
                 // Audio Features
                 const downloadZip = () => {
-                    window.open(`/api/download/${currentBook.value.name}`, '_blank');
+                    window.open(`/api/download/${encodeURIComponent(currentBook.value.name)}`, '_blank');
                 };
 
                 const mergeAudio = async () => {
@@ -1421,7 +1421,7 @@
 
                     try {
                         alert("正在后台合并，请稍候... 完成后将自动下载。");
-                        const res = await api.post(`/merge/${currentBook.value.name}`, {
+                        const res = await api.post(`/merge/${encodeURIComponent(currentBook.value.name)}`, {
                             book_name: currentBook.value.name,
                             chapter_ids: ids,
                             config: config.value

@@ -15,7 +15,7 @@ class BookProcessor:
     def __init__(self, file_path: str):
         self.file_path = pathlib.Path(file_path)
         self.filename = self.file_path.name
-        self.book_name = self.file_path.stem
+        self.book_name = self.file_path.stem.strip()
         
         from app.core.config import APP_DATA_DIR
         self.base_data_dir = APP_DATA_DIR
@@ -60,7 +60,7 @@ class BookProcessor:
         # 这里演示直接存 DB
         
         from app.db.database import db
-        safe_book_name = self._sanitize_path(self.book_name)
+        safe_book_name = self._sanitize_path(self.book_name).strip()
         
         try:
             conn = db.conn

@@ -84,7 +84,7 @@ class Database:
         
         for book_dir in APP_DATA_DIR.iterdir():
             if book_dir.is_dir() and book_dir.name.endswith("_audio"):
-                book_name = book_dir.name.replace("_audio", "")
+                book_name = book_dir.name.replace("_audio", "").strip()
                 tasks_file = book_dir / "tasks.json"
                 
                 if not tasks_file.exists():
