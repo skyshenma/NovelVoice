@@ -196,6 +196,14 @@ docker-compose -f docker-compose.local.yml logs
 docker-compose -f docker-compose.local.yml config
 ```
 
+### 日志文件位置
+
+日志文件存储在挂载的 `data/logs` 目录下：
+- `data/logs/app.log`: 主程序日志
+- `data/logs/error.log`: 错误日志
+
+可以使用 `tail -f data/logs/app.log` 实时查看。
+
 ### 数据丢失
 
 确保 `./data` 目录已正确挂载：

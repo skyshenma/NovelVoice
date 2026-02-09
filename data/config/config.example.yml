@@ -9,8 +9,18 @@ server:
 
 # ==================== 日志配置 ====================
 logging:
-  max_logs: 200  # 内存中保留的最大日志条数
-  error_log_file: "error.log"  # 错误日志文件名
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # 内存中保留的最大日志条数 (用于前端显示)
+  max_logs: 200
+  
+  # 日志轮转配置
+  max_bytes: 10485760  # 单个日志文件最大大小 (10MB)
+  backup_count: 5      # 保留的历史日志文件数量
+  
+  # 日志格式 (通常无需修改)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # ==================== TTS 默认参数 ====================
 tts:
@@ -381,7 +391,4 @@ voices:
     name: "nanami"
     description: "[友好] 日语 - 日本 - 女 - nanami"
 
-# ==================== 日志配置 ====================
-logging:
-  max_logs: 200
-  error_log_file: "error.log"
+

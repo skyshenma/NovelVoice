@@ -160,6 +160,13 @@ server:
 bark:
   enabled: false
   api_key: ""
+
+# 日志配置
+logging:
+  level: "INFO"           # 日志级别: DEBUG, INFO, WARNING, ERROR
+  max_logs: 200          # 内存日志保留条数
+  max_bytes: 10485760    # 单个日志文件大小 (10MB)
+  backup_count: 5        # 保留历史日志文件数
 ```
 
 ### 配置热重载

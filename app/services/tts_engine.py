@@ -7,6 +7,7 @@ import math
 import aiofiles
 import edge_tts
 from typing import List, Dict, Any, Optional, Union, Callable
+import logging
 
 class DynamicSemaphore:
     """支持动态调整限制的信号量"""
@@ -101,31 +102,35 @@ class TTSProcessor:
         log_limit = max_logs if max_logs is not None else MAX_LOGS
         self.logs = deque(maxlen=log_limit)
         
-        # Configure file logger
-        self.logger = logging.getLogger(f"TTS_{self.book_dir.name}")
-        self.logger.setLevel(logging.ERROR)
+        # 配置日志记录器
+        # 使用 centralized logger，日志将自动写入 data/logs/app.log 和 error.log
+        self.logger = logging.getLogger("app.tts")
         
-        # Only add handler if it doesn't exist
-        # Check by type to avoid adding multiple FileHandlers
-        has_file_handler = any(isinstance(h, logging.FileHandler) for h in self.logger.handlers)
-        if not has_file_handler:
-            try:
-                handler = logging.FileHandler(self.book_dir / "error.log", encoding='utf-8')
-                formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-                handler.setFormatter(formatter)
-                self.logger.addHandler(handler)
-            except Exception as e:
-                print(f"Failed to setup file logger: {e}")
+        # 不再单独创建每个书籍的 error.log 文件
+        # 统一由 app/core/logger.py 管理
         
     def log(self, message: str, level: str = "INFO"):
         from datetime import datetime
         timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        # 1. 保留前端显示的格式
         formatted = f"[{timestamp}] {message}"
-        print(formatted)
+        # print(formatted) # 移除 duplicate console output，由 logger 处理
         self.logs.append(formatted)
         
+        # 2. 写入统一日志系统
+        # 添加书籍名称前缀，以便在全局日志中区分
+        log_msg = f"[{self.book_dir.name}] {message}"
+        
+        level = level.upper()
         if level == "ERROR":
-            self.logger.error(message)
+            self.logger.error(log_msg)
+        elif level == "WARNING":
+            self.logger.warning(log_msg)
+        elif level == "DEBUG":
+            self.logger.debug(log_msg)
+        else:
+            self.logger.info(log_msg)
         
     def pause(self):
         self.log("任务暂停...")

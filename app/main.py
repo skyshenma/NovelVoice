@@ -42,7 +42,12 @@ async def index():
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
-    print("\n🚀 NovelVoice 启动完成")
+    # 初始化日志系统
+    from app.core.logger import setup_logger
+    setup_logger()
+    
+    import logging
+    logging.info("🚀 NovelVoice 启动完成")
     
     # 后台检查版本更新
     asyncio.create_task(check_version_on_startup())

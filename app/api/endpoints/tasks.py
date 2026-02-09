@@ -10,49 +10,58 @@ from app.schemas.config import GenerateRequest, TTSConfig
 
 router = APIRouter()
 
-async def run_tts_task(book_name: str, config: TTSConfig, chapter_ids: Optional[List[int]] = None):
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
-    if not book_dir.exists():
-        print(f"Directory not found for {book_name}")
-        return
+import logging
 
-    # Initialize Bark Notifier with configuration
-    silent_hours_config = config.get_section("bark.silent_hours")
-    http_timeout = config.get("bark.http_timeout", 5)
-    
-    notifier = BarkNotifier(
-        server_url=BARK_SERVER_URL,
-        api_key=BARK_API_KEY,
-        enabled=BARK_ENABLED,
-        web_base_url=WEB_BASE_URL,
-        silent_hours_config=silent_hours_config,
-        http_timeout=http_timeout
-    )
+# 获取 logger
+logger = logging.getLogger(__name__)
 
-    # Initialize Processor
-    processor = TTSProcessor(
-        str(book_dir),
-        voice=config.voice,
-        rate=config.rate,
-        volume=config.volume,
-        pitch=config.pitch,
-        concurrency_limit=lambda: state.concurrency,
-        notifier=notifier
-    )
-    
-    # Update global state
-    state.active_processors[book_name] = processor 
-    
+async def run_tts_task(book_name: str, tts_config: TTSConfig, chapter_ids: Optional[List[int]] = None):
     try:
+        book_dir = APP_DATA_DIR / f"{book_name}_audio"
+        if not book_dir.exists():
+            logger.error(f"Directory not found for {book_name}")
+            return
+
+        # Initialize Bark Notifier with configuration
+        # 使用全局 config 对象获取配置
+        silent_hours_config = config.get_section("bark.silent_hours")
+        http_timeout = config.get("bark.http_timeout", 5)
+        
+        notifier = BarkNotifier(
+            server_url=BARK_SERVER_URL,
+            api_key=BARK_API_KEY,
+            enabled=BARK_ENABLED,
+            web_base_url=WEB_BASE_URL,
+            silent_hours_config=silent_hours_config,
+            http_timeout=http_timeout
+        )
+
+        # Initialize Processor
+        processor = TTSProcessor(
+            str(book_dir),
+            voice=tts_config.voice,
+            rate=tts_config.rate,
+            volume=tts_config.volume,
+            pitch=tts_config.pitch,
+            concurrency_limit=lambda: state.concurrency,
+            notifier=notifier
+        )
+        
+        # Update global state
+        state.active_processors[book_name] = processor 
+        
         # Convert chapter_ids to string list if processor expects that?
         # Processor.process expects Optional[List[str]] based on type hint in tts_processor.py?
         # Let's check tts_processor.py line 105: process(self, chapter_ids: Optional[List[str]] = None)
         # But GenerateRequest.chapter_ids is List[int].
         # We should convert.
         ids_str = [str(i) for i in chapter_ids] if chapter_ids else None
+        
+        logger.info(f"Starting TTS task for {book_name} with voice {tts_config.voice}")
         await processor.process(chapter_ids=ids_str)
+            
     except Exception as e:
-        print(f"Error processing {book_name}: {e}")
+        logger.error(f"Error processing {book_name}: {e}", exc_info=True)
     finally:
         if book_name in state.active_processors:
             del state.active_processors[book_name]

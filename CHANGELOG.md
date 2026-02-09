@@ -7,7 +7,19 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.2.2] - 2026-02-08
+
+### 新增
+- **增强日志系统**：
+  - 统一日志管理：所有日志集中存储在 `data/logs` 目录
+  - 新增 `app.log` (主程序日志) 和 `error.log` (错误日志)
+  - 支持日志自动轮转（默认 10MB/个，保留 5 个备份）
+  - 支持在 `config.yml` 中配置日志等级 (`logging.level`)
+  - 优化日志格式，包含时间戳、模块名和日志等级
+
 ### 修复
+- **TTS 任务生成失败**：修复了 `run_tts_task` 中的变量命名冲突导致后台任务静默失败的问题（点击生成按钮无反应）
+- **配置文件冲突**：修复了 `config.yml` 中可能存在的重复日志配置项
 - **Docker 路径配置问题**：修复在 Docker 环境中设置 `NOVELVOICE_DATA_DIR` 后，`APP_DATA_DIR` 和 `CACHE_DIR` 未正确使用该路径的问题
   - 现在当设置 `NOVELVOICE_DATA_DIR=/data` 时，系统会自动使用 `/data/app` 和 `/data/cache`
   - 简化 Docker 配置，用户只需设置一个环境变量即可
@@ -125,7 +137,10 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ---
 
-[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.1.2...HEAD
+[未发布]: https://github.com/skyshenma/NovelVoice/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.2.2
+[1.2.1]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.2.1
+[1.2.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.2.0
 [1.1.2]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.2
 [1.1.1]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.1
 [1.1.0]: https://github.com/skyshenma/NovelVoice/releases/tag/v1.1.0

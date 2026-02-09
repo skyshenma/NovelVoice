@@ -178,8 +178,25 @@ SERVER_PORT = config.get("server.port", 8000)
 SERVER_RELOAD = config.get("server.reload", False)
 
 # ==================== 日志配置 ====================
+LOG_DIR = DATA_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# 日志级别 (支持 DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL = config.get("logging.level", "INFO").upper()
+
+# 日志格式
+LOG_FORMAT = config.get("logging.format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# 日志轮转配置
+LOG_MAX_BYTES = config.get("logging.max_bytes", 10 * 1024 * 1024)  # 默认 10MB
+LOG_BACKUP_COUNT = config.get("logging.backup_count", 5)           # 默认保留 5 个文件
+
+# 内存日志限制 (用于前端显示)
 MAX_LOGS = config.get("logging.max_logs", 200)
-ERROR_LOG_FILE = config.get("logging.error_log_file", "error.log")
+
+# 文件名配置
+APP_LOG_FILE = LOG_DIR / "app.log"
+ERROR_LOG_FILE = LOG_DIR / "error.log"
 
 # 打印配置加载信息
 print("=" * 60)
@@ -188,6 +205,7 @@ print("=" * 60)
 print(f"📁 数据目录: {DATA_DIR}")
 print(f"📁 应用数据目录: {APP_DATA_DIR}")
 print(f"📁 缓存目录: {CACHE_DIR}")
+print(f"📝 日志目录: {LOG_DIR}")
 print(f"🎤 默认语音: {DEFAULT_VOICE}")
 print(f"⚡ 并发限制: {CONCURRENCY_LIMIT}")
 print(f"📱 Bark 通知: {'启用' if BARK_ENABLED else '禁用'}")
