@@ -44,20 +44,46 @@ class TTSProcessor:
         self.voice = voice
         # TTS 参数
         def clean_param(p, suffix):
+            """
+            清理并格式化 TTS 参数 (语速、音量、音调)
+            确保参数以正确的后缀结尾，且对于数值型参数包含 +/- 符号
+            """
             default = f"+0{suffix}"
             if p is None:
                 return default
             
+            # 转为字符串并清理空格
             s = str(p).strip()
             if not s:
                 return default
                 
-            if s.isdigit() or (s.startswith(('+', '-')) and s[1:].isdigit()):
-                return f"{s}{suffix}"
-                
-            if not s.endswith(suffix):
-                s += suffix
+            # 1. 如果已经带了后缀，先全部移除（防止多次处理叠加，如 "+0%%"）
+            while s.endswith(suffix):
+                s = s[:-len(suffix)].strip()
             
+            # 2. 处理剩余部分
+            if not s:
+                return default
+                
+            # 3. 尝试识别是否为数值
+            try:
+                # 检查是否是纯数字或带符号的数字
+                val_str = s
+                if s.startswith(('+', '-')):
+                    val_str = s[1:]
+                
+                if val_str.isdigit():
+                    val = int(s)
+                    # 格式化为带符号的字符串
+                    s = f"{val:+d}"
+            except (ValueError, TypeError):
+                # 非纯数字则保持原样
+                pass
+            
+            # 4. 重新加上唯一的后缀
+            s = f"{s}{suffix}"
+            
+            # 5. 特殊值归一化 (0%, -0% -> +0%)
             if s in [f"0{suffix}", f"-0{suffix}"]:
                  return default
                  

@@ -127,15 +127,10 @@ async def preview_speech(request: PreviewRequest):
     temp_dir = APP_DATA_DIR / "temp_preview"
     temp_dir.mkdir(exist_ok=True)
     
-    # Validate Params
+    # Validate Params (TTSProcessor uses clean_param internally, but we normalize here for early validation)
     rate = request.config.rate
-    if not rate.endswith("%"): rate += "%"
-    
     volume = request.config.volume
-    if not volume.endswith("%"): volume += "%"
-    
     pitch = request.config.pitch if request.config.pitch else "+0Hz"
-    if pitch and pitch != "0" and not pitch.endswith("Hz"): pitch += "Hz"
 
     processor = TTSProcessor(
         str(temp_dir),
