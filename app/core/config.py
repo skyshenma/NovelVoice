@@ -25,7 +25,7 @@ AUTO_MIGRATE = config.get("paths.auto_migrate", False)
 
 def setup_adaptive_paths():
     """设置自适应路径"""
-    global DATA_DIR, APP_DATA_DIR, CACHE_DIR
+    global DATA_DIR, APP_DATA_DIR, CACHE_DIR, DB_DIR
     
     print("\n🔍 启动路径自适应系统...")
     
@@ -115,10 +115,27 @@ def setup_adaptive_paths():
         CACHE_DIR = BASE_DIR / cache_dir_str if not pathlib.Path(cache_dir_str).is_absolute() else pathlib.Path(cache_dir_str)
     
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ==================== 数据库目录 ====================
+    env_db_dir = get_env_path("NOVELVOICE_DB_DIR")
+    if env_db_dir:
+        # 用户显式指定
+        DB_DIR = env_db_dir
+    else:
+        # 尝试从配置文件读取
+        db_dir_str = config.get("paths.db_dir")
+        if db_dir_str:
+            DB_DIR = BASE_DIR / db_dir_str if not pathlib.Path(db_dir_str).is_absolute() else pathlib.Path(db_dir_str)
+        else:
+            # 默认使用 DATA_DIR/db
+            DB_DIR = DATA_DIR / "db"
+    
+    DB_DIR.mkdir(parents=True, exist_ok=True)
     
     print(f"✅ 路径自适应完成:")
     print(f"   📁 数据目录: {DATA_DIR}")
     print(f"   📁 应用数据: {APP_DATA_DIR}")
+    print(f"   📁 数据库目录: {DB_DIR}")
     print(f"   📁 缓存目录: {CACHE_DIR}")
 
 # 执行路径设置
@@ -205,6 +222,7 @@ print("=" * 60)
 print(f"📁 数据目录: {DATA_DIR}")
 print(f"📁 应用数据目录: {APP_DATA_DIR}")
 print(f"📁 缓存目录: {CACHE_DIR}")
+print(f"📁 数据库目录: {DB_DIR}")
 print(f"📝 日志目录: {LOG_DIR}")
 print(f"🎤 默认语音: {DEFAULT_VOICE}")
 print(f"⚡ 并发限制: {CONCURRENCY_LIMIT}")
@@ -216,7 +234,7 @@ print("=" * 60)
 print("\n🔍 检查路径权限...")
 from app.core.config_loader import check_paths_writable
 
-path_errors = check_paths_writable([DATA_DIR, APP_DATA_DIR, CACHE_DIR])
+path_errors = check_paths_writable([DATA_DIR, APP_DATA_DIR, DB_DIR, CACHE_DIR])
 if path_errors:
     print("\n❌ 路径权限检查失败:")
     for path, error in path_errors.items():

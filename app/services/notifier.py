@@ -4,6 +4,9 @@ import asyncio
 from typing import Optional
 from datetime import datetime, time
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BarkNotifier:
     """Bark 推送通知服务"""
@@ -74,7 +77,7 @@ class BarkNotifier:
             return False
             
         if self.is_silent_period():
-            print(f"[Bark] 静默时间段，跳过推送: {title}")
+            logger.info(f"[Bark] 静默时间段，跳过推送: {title}")
             return False
         
         try:
@@ -93,17 +96,17 @@ class BarkNotifier:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(bark_url, params=params) as resp:
                     if resp.status == 200:
-                        print(f"[Bark] ✅ 推送成功: {title}")
+                        logger.info(f"[Bark] ✅ 推送成功: {title}")
                         return True
                     else:
-                        print(f"[Bark] ❌ 推送失败 (HTTP {resp.status}): {title}")
+                        logger.warning(f"[Bark] ❌ 推送失败 (HTTP {resp.status}): {title}")
                         return False
                         
         except asyncio.TimeoutError:
-            print(f"[Bark] ⏱️ 推送超时（不影响主流程）: {title}")
+            logger.warning(f"[Bark] ⏱️ 推送超时（不影响主流程）: {title}")
             return False
         except Exception as e:
-            print(f"[Bark] ⚠️ 推送异常（不影响主流程）: {e}")
+            logger.error(f"[Bark] ⚠️ 推送异常（不影响主流程）: {e}")
             return False
     
     async def send_task_start(self, book_name: str, total_chapters: int) -> bool:

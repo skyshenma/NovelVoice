@@ -7,6 +7,9 @@ import shutil
 import pathlib
 from typing import List, Dict, Any
 from .parsers import ParserFactory
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BookProcessor:
     def __init__(self, file_path: str):
@@ -42,26 +45,60 @@ class BookProcessor:
 
             if tasks:
                 self._save_tasks(tasks, book_dir)
-                print(f"成功处理书籍 '{self.book_name}'，共生成 {len(tasks)} 个任务。")
+                logger.info(f"成功处理书籍 '{self.book_name}'，共生成 {len(tasks)} 个任务。")
             else:
-                print(f"书籍 '{self.book_name}' 未提取到有效内容。")
+                logger.warning(f"书籍 '{self.book_name}' 未提取到有效内容。")
                 
         except Exception as e:
-            print(f"处理书籍 '{self.filename}' 时发生错误: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"处理书籍 '{self.filename}' 时发生错误: {e}", exc_info=True)
 
 
 
     def _save_tasks(self, tasks: List[Dict[str, Any]], book_dir: pathlib.Path):
-        """保存任务到 JSON"""
-        task_file = book_dir / "tasks.json"
+        """保存任务到数据库"""
+        # 为了兼容性，暂时保留 tasks.json 生成 (可选)，但主要逻辑迁移到 DB
+        # 这里演示直接存 DB
+        
+        from app.db.database import db
+        safe_book_name = self._sanitize_path(self.book_name)
+        
         try:
-            with open(task_file, 'w', encoding='utf-8') as f:
-                json.dump(tasks, f, ensure_ascii=False, indent=2)
-            print(f"任务列表已保存至: {task_file}")
+            conn = db.conn
+            if not conn:
+                db.connect()
+                conn = db.conn
+                
+            cursor = conn.cursor()
+            
+            # 检查是否已存在，如果存在则跳过或覆盖？
+            # 简单起见，如果书籍已存在，应该先清理旧记录或只有增量更新
+            # 这里假设重新导入是全量覆盖
+            cursor.execute("DELETE FROM tasks WHERE book_name = ?", (safe_book_name,))
+            
+            # 批量插入
+            data_to_insert = []
+            for t in tasks:
+                # task struct: {'id': 1, 'title': '...', 'content': '...', 'status': 'pending'}
+                data_to_insert.append((
+                    f"{safe_book_name}_{t['id']}", # task_id (unique string)
+                    safe_book_name,
+                    t['id'],
+                    t['title'],
+                    t['content'],
+                    'pending',
+                    None # audio_path
+                ))
+                
+            cursor.executemany("""
+                INSERT INTO tasks (id, book_name, chapter_index, title, content, status, audio_path)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, data_to_insert)
+            
+            conn.commit()
+            logger.info(f"成功将 {len(tasks)} 个任务保存到数据库。")
+            
         except Exception as e:
-            print(f"任务文件保存失败: {e}")
+            logger.error(f"保存任务到数据库失败: {e}", exc_info=True)
 
     def get_task_status(self) -> str:
         """获取当前书籍的处理进度"""

@@ -60,6 +60,21 @@
                 </a>
             </div>
 
+            <!-- Logs Toggle -->
+            <button @click="showLogs = true"
+                class="w-full bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-2 rounded mb-6 flex items-center justify-between transition-all border border-gray-700/50 hover:border-gray-600">
+                <span class="flex items-center gap-2 text-sm">
+                    <span>📜</span>
+                    <span class="font-medium">系统日志</span>
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="text-[10px] uppercase tracking-wider opacity-60 font-mono"
+                        v-if="wsStatus === 'connected'">LIVE</span>
+                    <span class="w-1.5 h-1.5 rounded-full animate-pulse"
+                        :class="wsStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'"></span>
+                </span>
+            </button>
+
             <!-- Upload (Moved to top) -->
             <div class="border-b border-gray-700 pb-6">
                 <h2 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">导入书籍</h2>
@@ -295,6 +310,7 @@
                             class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>
+
             </div>
 
             <!-- Upload (Moved from bottom) -->
@@ -360,6 +376,15 @@
                             <div class="flex gap-2">
                                 <button class="mt-2 text-sm text-blue-400 hover:text-blue-300">
                                     进入详情 & 管理 >
+                                </button>
+                                <div class="flex-1"></div>
+                                <button @click.stop="openBookFolder(book.name)"
+                                    class="mt-2 text-gray-500 hover:text-blue-400" title="打开文件夹">
+                                    <span class="text-sm">📂</span>
+                                </button>
+                                <button @click.stop="deleteBook(book.name)"
+                                    class="mt-2 text-gray-500 hover:text-red-500 transition-colors" title="删除书籍">
+                                    <span class="text-sm">🗑️</span>
                                 </button>
                             </div>
                         </div>
@@ -705,11 +730,58 @@
                     </div>
                 </div>
             </div>
+            <!-- Log Viewer Modal -->
+            <div v-if="showLogs"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                @click.self="showLogs = false">
+                <div
+                    class="bg-gray-900 rounded-lg shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col border border-gray-700 font-mono text-sm">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-3 border-b border-gray-700 bg-gray-800">
+                        <div class="flex items-center gap-2">
+                            <span>📜</span>
+                            <span class="font-bold text-gray-200">系统日志</span>
+                            <span class="text-xs text-green-400 ml-2 flex items-center gap-1"
+                                v-if="wsStatus === 'connected'">
+                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 已连接
+                            </span>
+                            <span class="text-xs text-red-400 ml-2 flex items-center gap-1" v-else>
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> 断开
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                                <input type="checkbox" v-model="autoScroll"
+                                    class="rounded bg-gray-700 border-gray-600 text-blue-500">
+                                自动滚动
+                            </label>
+                            <button @click="clearLogs"
+                                class="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700">
+                                清空
+                            </button>
+                            <button @click="showLogs = false" class="text-gray-400 hover:text-white transition-colors">
+                                <span class="text-xl">×</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Log Content -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-1 bg-black text-gray-300" ref="logContainer">
+                        <div v-if="logs.length === 0" class="text-gray-600 text-center mt-10 italic">
+                            等待日志输入...
+                        </div>
+                        <div v-for="(log, index) in logs" :key="index"
+                            class="break-words whitespace-pre-wrap hover:bg-gray-800/30 transition-colors">
+                            <span :class="getLogClass(log)">{{ log }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch, onBeforeUnmount } = Vue;
+        const { createApp, ref, computed, onMounted, watch, onBeforeUnmount, nextTick } = Vue;
 
         createApp({
             setup() {
@@ -774,6 +846,77 @@
                 const audioFiles = ref([]);
                 const selectedFiles = ref(new Set());
                 const fileRangeInput = ref('');
+
+                // Logs
+                const showLogs = ref(false);
+                const logs = ref([]);
+                const wsStatus = ref('disconnected');
+                const autoScroll = ref(true);
+                const logContainer = ref(null);
+                let ws = null;
+                let reconnectTimer = null;
+
+                const connectWebSocket = () => {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/api/ws/logs`;
+
+                    ws = new WebSocket(wsUrl);
+
+                    ws.onopen = () => {
+                        wsStatus.value = 'connected';
+                        logs.value.push(`[System] Connected to log stream at ${new Date().toLocaleTimeString()}`);
+                        if (reconnectTimer) clearInterval(reconnectTimer);
+                    };
+
+                    ws.onmessage = (event) => {
+                        logs.value.push(event.data);
+                        if (logs.value.length > 2000) logs.value.shift(); // Keep last 2000 lines
+
+                        if (autoScroll.value) {
+                            scrollToBottom();
+                        }
+                    };
+
+                    ws.onclose = () => {
+                        wsStatus.value = 'disconnected';
+                        // Reconnect after 3s
+                        reconnectTimer = setTimeout(connectWebSocket, 3000);
+                    };
+
+                    ws.onerror = (err) => {
+                        console.error('WebSocket error:', err);
+                        ws.close();
+                    };
+                };
+
+                const scrollToBottom = () => {
+                    nextTick(() => {
+                        if (logContainer.value) {
+                            logContainer.value.scrollTop = logContainer.value.scrollHeight;
+                        }
+                    });
+                };
+
+                const clearLogs = () => logs.value = [];
+
+                const getLogClass = (logLine) => {
+                    if (logLine.includes('ERROR') || logLine.includes('CRITICAL')) return 'text-red-400';
+                    if (logLine.includes('WARNING')) return 'text-yellow-400';
+                    if (logLine.includes('INFO')) return 'text-blue-300';
+                    if (logLine.includes('DEBUG')) return 'text-gray-500';
+                    return 'text-gray-300';
+                };
+
+                onMounted(() => {
+                    fetchBooks();
+                    checkVersion();
+                    connectWebSocket();
+                });
+
+                onBeforeUnmount(() => {
+                    if (ws) ws.close();
+                    if (reconnectTimer) clearTimeout(reconnectTimer);
+                });
 
                 // Computed
                 watch(rateVal, (val) => config.value.rate = (val >= 0 ? "+" : "") + val + "%"); // Explicitly append % for display/logic if needed, though input handles number
@@ -994,37 +1137,6 @@
                 const rangeInput = ref("");
                 const quickRanges = ref({});
 
-                // Logs
-                const showLogs = ref(false);
-                const logs = ref([]);
-                const logContainer = ref(null);
-
-                // Auto-scroll logs
-                watch(logs, async () => {
-                    if (showLogs.value && logContainer.value) {
-                        await Vue.nextTick();
-                        logContainer.value.scrollTop = logContainer.value.scrollHeight;
-                    }
-                }, { deep: true });
-
-                // Auto-fetch logs when opened
-                watch(showLogs, (val) => {
-                    if (val) fetchLogs();
-                });
-
-                const fetchLogs = async () => {
-                    if (!currentBook.value || !showLogs.value) return;
-                    try {
-                        const res = await api.get(`/logs/${currentBook.value.name}`);
-                        // Only update if length changed or we want to force refresh. 
-                        // To avoid jitter, we could check last log timestamp, but this is simple.
-                        // Actually, just replacing provides latest state.
-                        if (JSON.stringify(res.data.logs) !== JSON.stringify(logs.value)) {
-                            logs.value = res.data.logs;
-                        }
-                    } catch (e) { }
-                };
-
                 // Validating user input: "1-5, 8, 10-12" to chapter IDs
                 const applyRangeSelection = () => {
                     const input = rangeInput.value.trim();
@@ -1178,6 +1290,29 @@
                 };
                 const handleFileSelect = (e) => handleUpload(e.target.files[0]);
                 const handleDrop = (e) => handleUpload(e.dataTransfer.files[0]);
+
+                const deleteBook = async (bookName) => {
+                    if (!confirm(`确定要删除书籍 "${bookName}" 吗？\n此操作将删除所有相关文件和数据，且无法恢复！`)) {
+                        return;
+                    }
+
+                    try {
+                        await axios.delete(`/api/books/${encodeURIComponent(bookName)}`);
+                        showToast(`书籍 "${bookName}" 已删除`);
+
+                        // 如果删除的是当前选中的书，清空选择
+                        if (currentBook.value && currentBook.value.name === bookName) {
+                            currentBook.value = null;
+                            chapters.value = [];
+                            viewMode.value = 'list';
+                        }
+
+                        // 刷新列表
+                        await fetchBooks();
+                    } catch (error) {
+                        showToast('删除失败: ' + (error.response?.data?.detail || error.message), 'error');
+                    }
+                };
 
                 // --- File Manager ---
                 const openFileManager = async (bookName) => {
@@ -1569,7 +1704,6 @@
                         } else {
                             fetchChapters();
                             fetchTaskStatus();
-                            fetchLogs();
                         }
                     }, 2000);
                 };
@@ -1601,7 +1735,7 @@
                     reloadingConfig, lastReloadTime,
                     updateInfo, showUpdateModal,
                     isAllSelected, rangeInput, quickRanges,
-                    showLogs, logs, logContainer,
+                    showLogs, logs, logContainer, wsStatus, autoScroll,
                     customText, customPreviewing, defaultCustomPlaceholder, previewing,
                     chapterFilter, filteredChapters,
                     completedCount, failedCount, pendingCount,
@@ -1609,11 +1743,11 @@
                     filteredAudioFiles, isAllFilesSelected,
 
                     // Methods
-                    fetchBooks, fetchVoices, updateConcurrency, fetchLogs,
+                    fetchBooks, fetchVoices, updateConcurrency,
                     enterDetail, fetchChapters, fetchTaskStatus,
                     handleUpload, handleFileSelect, handleDrop,
                     toggleChapter, toggleSelectAll, applyRangeSelection, handleQuickStart,
-                    deleteSelected, startSelected, pauseTask, resumeTask,
+                    deleteSelected, startSelected, pauseTask, resumeTask, deleteBook,
                     resetConfig, reloadConfig,
                     testVoice, previewChapter, testCustomVoice, setRandomText,
                     downloadZip, mergeAudio, openFileManager,
@@ -1621,7 +1755,8 @@
                     toggleFileSelection, applyFileRange, toggleSelectAllFiles, formatFileSize,
                     testBarkNotification, saveAsDefault,
                     checkVersion, dismissUpdate,
-                    statusClass, progressPercent
+                    statusClass, progressPercent,
+                    connectWebSocket, clearLogs, getLogClass
                 };
             }
         }).mount('#app');

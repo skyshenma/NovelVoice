@@ -4,6 +4,9 @@ from fastapi.responses import FileResponse, StreamingResponse
 import hashlib
 import io
 import edge_tts
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import VOICES_LIST, APP_DATA_DIR, CACHE_DIR, WEB_BASE_URL, config
 from app.schemas.config import CustomPreviewRequest, TTSConfig, PreviewRequest
@@ -150,7 +153,7 @@ async def preview_speech(request: PreviewRequest):
             media_type="audio/mpeg"
         )
     except Exception as e:
-        print(f"Preview error: {e}")
+        logger.error(f"Preview error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # Bark 测试通知接口

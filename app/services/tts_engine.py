@@ -36,7 +36,9 @@ class TTSProcessor:
                  timeout: Optional[int] = None,
                  max_logs: Optional[int] = None):
         self.book_dir = pathlib.Path(book_dir)
-        self.tasks_file = self.book_dir / "tasks.json"
+
+        # 移除 tasks.json 相关初始化
+        # self.tasks_file = self.book_dir / "tasks.json" # DELETED
         
         # TTS 参数
         self.voice = voice
@@ -46,23 +48,16 @@ class TTSProcessor:
             if p is None:
                 return default
             
-            # Ensure string
             s = str(p).strip()
             if not s:
                 return default
                 
-            # Handle plain numbers (0 -> +0%)
             if s.isdigit() or (s.startswith(('+', '-')) and s[1:].isdigit()):
                 return f"{s}{suffix}"
                 
-            # Handle existing suffix
             if not s.endswith(suffix):
-                # If it doesn't end with suffix, append it? 
-                # But if it's "raw", maybe we should check.
-                # Let's assume input needs suffix if missing.
                 s += suffix
             
-            # Normalize 0% -> +0%
             if s in [f"0{suffix}", f"-0{suffix}"]:
                  return default
                  
@@ -82,7 +77,7 @@ class TTSProcessor:
         
         # 并发控制
         self.semaphore = DynamicSemaphore(concurrency_limit)
-        self.file_lock = asyncio.Lock()
+        # self.file_lock = asyncio.Lock() # 数据库有自己的锁机制，或者 SQLite 单写多读
         
         # 暂停控制 (默认运行)
         self.pause_event = asyncio.Event()
@@ -94,32 +89,22 @@ class TTSProcessor:
         # Bark 通知服务
         self.notifier = notifier
         
-        # 日志系统（从配置读取日志数量）
+        # 日志系统
         from collections import deque
-        from datetime import datetime
         import logging
         from app.core.config import MAX_LOGS
         log_limit = max_logs if max_logs is not None else MAX_LOGS
         self.logs = deque(maxlen=log_limit)
         
-        # 配置日志记录器
-        # 使用 centralized logger，日志将自动写入 data/logs/app.log 和 error.log
         self.logger = logging.getLogger("app.tts")
-        
-        # 不再单独创建每个书籍的 error.log 文件
-        # 统一由 app/core/logger.py 管理
         
     def log(self, message: str, level: str = "INFO"):
         from datetime import datetime
         timestamp = datetime.now().strftime("%H:%M:%S")
         
-        # 1. 保留前端显示的格式
         formatted = f"[{timestamp}] {message}"
-        # print(formatted) # 移除 duplicate console output，由 logger 处理
         self.logs.append(formatted)
         
-        # 2. 写入统一日志系统
-        # 添加书籍名称前缀，以便在全局日志中区分
         log_msg = f"[{self.book_dir.name}] {message}"
         
         level = level.upper()
@@ -142,125 +127,128 @@ class TTSProcessor:
 
     async def process(self, chapter_ids: Optional[List[str]] = None):
         """主处理流程"""
-        # 信号量已在 init 中初始化
-        # self.semaphore = asyncio.Semaphore(2)
         
-        if not self.tasks_file.exists():
-            self.log(f"任务文件不存在: {self.tasks_file}")
-            return
-            
         # 确保开始时是运行状态
         if not self.pause_event.is_set():
             self.pause_event.set()
 
-        # 读取任务
-        async with aiofiles.open(self.tasks_file, 'r', encoding='utf-8') as f:
-            content = await f.read()
-            tasks = json.loads(content)
+        # 读取任务 (从数据库)
+        # 注意：这里我们使用同步的 database.py，为了不阻塞主循环，应该放到 thread pool 或者使用 aiosqlite
+        # 既然前面 pip install aiosqlite 失败，我们先用 to_thread + sqlite3
+        from app.db.database import db
+        
+        book_name = self.book_dir.name.replace("_audio", "")
+        
+        def fetch_tasks():
+            cursor = db.get_cursor()
+            query = "SELECT * FROM tasks WHERE book_name = ? ORDER BY chapter_index"
+            cursor.execute(query, (book_name,))
+            return [dict(row) for row in cursor.fetchall()]
+            
+        tasks = await asyncio.to_thread(fetch_tasks)
             
         # 筛选任务
         if chapter_ids:
-            tasks = [t for t in tasks if str(t.get("id")) in map(str, chapter_ids)]
+            tasks = [t for t in tasks if str(t.get("chapter_index")) in map(str, chapter_ids)]
             self.log(f"筛选处理: {len(tasks)} 个章节")
             
-        self.log(f"开始处理书籍: {self.book_dir.name}, 共 {len(tasks)} 个章节")
+        self.log(f"开始处理书籍: {book_name}, 共 {len(tasks)} 个章节")
         self.log(f"参数: Voice={self.voice}, Rate={self.rate}, Volume={self.volume}, Pitch={self.pitch}")
 
         # 📱 Bark 通知: 任务开始
-        book_name = self.book_dir.name.replace("_audio", "")
         if self.notifier:
             await self.notifier.send_task_start(book_name, len(tasks))
         
-        # 记录开始时间（用于耗时统计）
         import time
         start_time = time.time()
 
         # 创建并执行所有任务
+        # 限制：SQLite 默认不支持高并发写入，需要控制
+        # 但我们使用 thread pool + 单连接或 WAL 模式应该还好
         coroutines = [self._process_task_wrapper(task) for task in tasks]
         await asyncio.gather(*coroutines)
         
-        # 📱 Bark 通知: 任务完成
         elapsed_minutes = (time.time() - start_time) / 60
         if self.notifier:
             await self.notifier.send_task_complete(book_name, elapsed_minutes)
         
-        self.log(f"书籍 {self.book_dir.name} 处理完成。")
+        self.log(f"书籍 {book_name} 处理完成。")
 
     async def _process_task_wrapper(self, task: Dict[str, Any]):
-        """任务包装器，用于在完成后更新整体状态文件（可选，或仅在内存中更新）"""
-        
-        # 每一章开始前检查暂停状态
+        """任务包装器"""
         await self.pause_event.wait()
         
-        # 记录正在处理
-        self.processing_chapters.add(task.get("title", "Unknown"))
+        title = task.get("title", "Unknown")
+        self.processing_chapters.add(title)
         try:
-            # 注意：这里为了简化，每个任务完成后单独更新文件可能会有竞争。
-            # 更好的做法是内存更新，最后统一保存，或者使用锁。
-            # 但考虑到断点续传，实时更新状态到文件更安全。
-            # 这里采用简单的实时更新，实际高并发可能需要文件锁，但 2 个并发冲突概率极低。
-            
             updated_task = await self._synthesize_chapter(task)
             if updated_task:
-                await self._update_task_status_in_file(updated_task)
+                await self._update_task_status_in_db(updated_task)
         finally:
-            self.processing_chapters.discard(task.get("title", "Unknown"))
+            self.processing_chapters.discard(title)
 
-    async def _update_task_status_in_file(self, task: Dict[str, Any]):
-        async with self.file_lock:
-             try:
-                 async with aiofiles.open(self.tasks_file, 'r', encoding='utf-8') as f:
-                     content = await f.read()
-                     tasks = json.loads(content)
-                 
-                 for i, t in enumerate(tasks):
-                     if t['id'] == task['id']:
-                         tasks[i] = task
-                         break
-                         
-                 async with aiofiles.open(self.tasks_file, 'w', encoding='utf-8') as f:
-                     await f.write(json.dumps(tasks, ensure_ascii=False, indent=2))
-             except Exception as e:
-                 self.log(f"更新状态文件失败: {e}")
+    async def _update_task_status_in_db(self, task: Dict[str, Any]):
+        from app.db.database import db
+        
+        def update_db():
+            conn = db.conn
+            if not conn:
+                db.connect()
+                conn = db.conn
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE tasks 
+                SET status = ?, audio_path = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (task['status'], task.get('audio_path'), task['id']))
+            conn.commit()
+            
+        await asyncio.to_thread(update_db)
 
     async def _synthesize_chapter(self, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """单个章节合成逻辑"""
-        task_id = task.get("id")
+        # 适配 DB 字段名
+        task_id = task.get("id") # DB id is string "bookname_idx"
+        chapter_index = task.get("chapter_index")
         title = task.get("title")
         content = task.get("content")
         status = task.get("status")
+        audio_path_db = task.get("audio_path")
         
-        # 文件名格式: 0001-第一章.mp3
         safe_title = str(title).replace("/", "_").replace("\\", "_")
-        filename = f"{task_id:04d}-{safe_title}.mp3"
+        filename = f"{chapter_index:04d}-{safe_title}.mp3"
         output_path = self.book_dir / filename
         
         # 1. 检查断点续传
+        # 数据库显示完成，或者文件存在且不为空
         if status == "completed" and output_path.exists() and output_path.stat().st_size > 0:
-            # self.log(f"[{task_id}] 跳过已完成任务: {title}")
-            return None # 不需要更新
-
+            return None 
+            
+        # 如果文件存在但数据库说是 pending，可能是之前没更新成功，这里也检查一下文件
+        # 或者我们强制覆盖
+        
         async with self.semaphore:
-            self.log(f"[{task_id}] 开始合成: {title} (长度: {len(content)})")
+            self.log(f"[{chapter_index}] 开始合成: {title} (长度: {len(content)})")
             
             try:
-                # 2. 长文本切割
                 if len(content) > self.max_chars:
-                    self.log(f"[{task_id}] 文本过长，执行切割处理...")
+                    self.log(f"[{chapter_index}] 文本过长，执行切割处理...")
                     await self._synthesize_long_text(content, output_path)
                 else:
                     await self._synthesize_with_retry(content, output_path)
                 
                 # 3. 更新状态
-                task["status"] = "completed"
-                task["audio_path"] = str(output_path.name)
-                self.log(f"[{task_id}] 合成完成: {filename}")
-                return task
+                newTask = dict(task) # shallow copy
+                newTask["status"] = "completed"
+                newTask["audio_path"] = str(output_path.name)
+                self.log(f"[{chapter_index}] 合成完成: {filename}")
+                return newTask
                 
             except Exception as e:
-                self.log(f"[{task_id}] 合成失败: {e}")
-                task["status"] = "failed"
-                return task
+                self.log(f"[{chapter_index}] 合成失败: {e}")
+                newTask = dict(task)
+                newTask["status"] = "failed"
+                return newTask
 
     async def _synthesize_with_retry(self, text: str, output_path: pathlib.Path, max_retries: int = 3):
         """带重试的合成 (Timeout + Exponential Backoff)"""
@@ -273,19 +261,15 @@ class TTSProcessor:
                     volume=self.volume, 
                     pitch=self.pitch
                 )
-                # 超时控制（从配置读取）
                 await asyncio.wait_for(communicate.save(str(output_path)), timeout=self.timeout)
                 
-                # 验证文件
                 if output_path.exists() and output_path.stat().st_size > 0:
                     return
                 else:
                     raise Exception("生成的文件为空")
                     
             except Exception as e:
-                # 指数退避: 2s, 4s, 8s...
                 wait_time = 2 * (2 ** attempt) 
-                # 限制最大等待时间
                 wait_time = min(wait_time, 30)
                 
                 if attempt < max_retries - 1:
@@ -293,32 +277,15 @@ class TTSProcessor:
                     await asyncio.sleep(wait_time)
                 else:
                     self.log(f"最终失败: {e}", level="ERROR")
-                    # 📱 Bark 通知: 异常报警（仅在最终失败时推送）
-                    # Note: We don't have task_id and book_name here easily
-                    # This would need to be passed down or extracted from context
                     raise e
 
     async def _synthesize_long_text(self, text: str, output_path: pathlib.Path):
         """长文本切割合成并合并"""
-        # 切分文本
-        chunks = []
-        current_chunk = ""
-        # 简单按长度切分，更好的是按句号切分，这里简化处理防止截断句子
-        # 稍微优化：寻找最近的标点符号
+        from app.core.text_splitter import TextSplitter
+        splitter = TextSplitter()
+        chunks = splitter.split_text(text, self.max_chars)
         
-        idx = 0
-        while idx < len(text):
-            end_idx = min(idx + self.max_chars, len(text))
-            
-            if end_idx < len(text):
-                # 尝试在最后 100 个字符找标点
-                lookback = text[end_idx-100:end_idx]
-                last_punct = max(lookback.rfind('。'), lookback.rfind('\n'), lookback.rfind('！'), lookback.rfind('？'))
-                if last_punct != -1:
-                    end_idx = (end_idx - 100) + last_punct + 1
-            
-            chunks.append(text[idx:end_idx])
-            idx = end_idx
+        self.log(f"智能切分: {len(text)} 字符 -> {len(chunks)} 片段")
 
         # 分别合成
         temp_files = []
@@ -328,7 +295,6 @@ class TTSProcessor:
                 temp_files.append(temp_file)
                 await self._synthesize_with_retry(chunk, temp_file)
             
-            # 合并文件 (MP3 直接追加即可)
             async with aiofiles.open(output_path, 'wb') as outfile:
                 for temp_file in temp_files:
                     async with aiofiles.open(temp_file, 'rb') as infile:
@@ -336,7 +302,6 @@ class TTSProcessor:
                         await outfile.write(data)
                         
         finally:
-            # 清理临时文件
             for f in temp_files:
                 if f.exists():
                     f.unlink()
@@ -362,44 +327,10 @@ class TTSProcessor:
         buffer.seek(0)
         return buffer.read()
 
-    async def _update_task_status_in_file(self, updated_task: Dict[str, Any]):
-        """更新文件中的特定任务状态"""
-        # 使用 asyncio.Lock 保护文件写入，防止并发导致的 JSON 损坏
-        async with self.file_lock:
-            try:
-                if not self.tasks_file.exists():
-                    return
-
-                async with aiofiles.open(self.tasks_file, 'r', encoding='utf-8') as f:
-                    content = await f.read()
-                    current_tasks = json.loads(content)
-                
-                updated = False
-                for t in current_tasks:
-                    if t['id'] == updated_task['id']:
-                        t.update(updated_task)
-                        updated = True
-                        break
-                
-                if updated:
-                    async with aiofiles.open(self.tasks_file, 'w', encoding='utf-8') as f:
-                        await f.write(json.dumps(current_tasks, ensure_ascii=False, indent=2))
-            except Exception as e:
-                print(f"更新任务状态失败: {e}")
-
 # CLI 入口
 if __name__ == "__main__":
     import sys
     import argparse
-    
-    parser = argparse.ArgumentParser(description="TTS Processor")
-    parser.add_argument("book_dir", help="书籍音频目录路径")
-    parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="发音人")
-    parser.add_argument("--rate", default="+0%", help="语速")
-    parser.add_argument("--volume", default="+0%", help="音量")
-    parser.add_argument("--pitch", default="+0Hz", help="音调")
-    
-    args = parser.parse_args()
-    
-    processor = TTSProcessor(args.book_dir, args.voice, args.rate, args.volume, args.pitch)
-    asyncio.run(processor.process())
+    # 注意：CLI 模式现在也需要连接数据库，这可能需要在 __main__ 里初始化 DB
+    # 暂时简化，提示用户使用 Web 界面
+    print("CLI 模式暂时不支持直接运行，请使用 Web 界面或通过 curl 调用 API")

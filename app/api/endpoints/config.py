@@ -12,6 +12,9 @@ from app.core.config_loader import (
     save_config_to_yaml, 
     validate_tts_config
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -163,8 +166,7 @@ async def update_config(request: ConfigUpdateRequest):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error(f"更新配置失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"更新配置失败: {str(e)}")
 
 
@@ -233,6 +235,5 @@ async def reload_config():
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error(f"重载配置失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"重载配置失败: {str(e)}")

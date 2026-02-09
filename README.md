@@ -16,7 +16,7 @@
 - 📚 **多格式支持** - 智能解析 TXT/EPUB (优先读取 Spine/TOC 结构)
 - 🌐 **现代 Web 界面** - 美观易用的单页应用
 - 📂 **文件管理器** - 可视化管理音频文件,支持单文件/批量下载、范围筛选
-- ⚡ **并发处理** - 多章节并行合成,提升效率
+- ⚡ **并发处理** - 引入 SQLite 数据库管理任务状态,显著提升并发稳定性
 - 🔄 **自动重试** - 网络异常自动重试,确保稳定性
 - 🔧 **配置热重载** - 无需重启即可应用新配置
 - 📱 **Bark 推送** - 支持 iOS Bark 通知
@@ -67,7 +67,7 @@ docker-compose -f docker-compose.simple.yml up -d
 open http://localhost:8000
 ```
 
-详细说明请查看 [Docker 部署指南](DOCKER.md)
+详细说明请查看 [Docker 部署指南](docs/docker.md)
 
 ### 方式二: 本地运行
 
@@ -93,9 +93,9 @@ open http://localhost:8000
 ```
 
 **详细安装指南**:
-- [Windows 安装](INSTALL.md#-windows-安装)
-- [macOS 安装](INSTALL.md#-macos-安装)
-- [Linux 安装](INSTALL.md#-linux-安装)
+- [Windows 安装](docs/install.md#-windows-安装)
+- [macOS 安装](docs/install.md#-macos-安装)
+- [Linux 安装](docs/install.md#-linux-安装)
 
 ---
 
@@ -189,9 +189,9 @@ logging:
 - 🇨🇦 **加拿大英语**: `en-CA-ClaraNeural`, `en-CA-LiamNeural`
 - 🇯🇵 **日语**: `ja-JP-NanamiNeural`, `ja-JP-KeitaNeural`
 
-完整列表请查看 [配置指南](CONFIG_GUIDE.md)
+完整列表请查看 [配置指南](docs/config.md)
 
-详细配置说明请查看 [配置指南](CONFIG_GUIDE.md)
+详细配置说明请查看 [配置指南](docs/config.md)
 
 ### 环境变量
 
@@ -217,6 +217,7 @@ NovelVoice/
 ├── data/                  # 数据目录
 │   ├── config/           # 配置文件
 │   ├── app/              # 书籍和音频
+│   ├── db/               # SQLite 数据库目录 (v1.3.0+)
 │   └── cache/            # 缓存文件
 ├── static/               # Web 界面
 ├── Dockerfile            # Docker 镜像
@@ -224,7 +225,7 @@ NovelVoice/
 └── requirements.txt      # Python 依赖
 ```
 
-详细说明请查看 [项目结构](PROJECT_STRUCTURE.md)
+详细说明请查看 [项目结构](docs/structure.md)
 
 ---
 
@@ -271,17 +272,14 @@ docker run -d \
 ### 使用 Docker Compose
 
 ```bash
-# 启动
+# 启动预览
 docker-compose up -d
 
-# 查看日志
-docker-compose logs -f
-
-# 停止
+# 停止容器
 docker-compose down
 ```
 
-详细说明请查看 [Docker 部署指南](DOCKER.md)
+详细说明请查看 [Docker 部署指南](docs/docker.md)
 
 ---
 
@@ -307,12 +305,12 @@ docker-compose down
 
 ## 📝 文档
 
-- [安装指南](INSTALL.md) - Windows/macOS/Linux 详细安装步骤
-- [快速开始](QUICKSTART.md) - 快速上手指南
-- [配置指南](CONFIG_GUIDE.md) - 详细配置说明
-- [安全指南](SECURITY.md) - 配置文件安全管理
-- [Docker 部署](DOCKER.md) - Docker 部署指南
-- [项目结构](PROJECT_STRUCTURE.md) - 代码结构说明
+- [安装指南](docs/install.md) - Windows/macOS/Linux 详细安装步骤
+- [快速开始](docs/quickstart.md) - 快速上手指南
+- [配置指南](docs/config.md) - 详细配置说明
+- [安全指南](docs/security.md) - 配置文件安全管理
+- [Docker 部署](docs/docker.md) - Docker 部署指南
+- [项目结构](docs/structure.md) - 代码结构说明
 
 ---
 

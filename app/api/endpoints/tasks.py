@@ -66,8 +66,12 @@ async def run_tts_task(book_name: str, tts_config: TTSConfig, chapter_ids: Optio
         if book_name in state.active_processors:
             del state.active_processors[book_name]
 
+
+from app.db.database import db
+
 @router.post("/start")
 async def start_task(request: GenerateRequest, background_tasks: BackgroundTasks):
+    # 检查内存中是否已在运行
     if request.book_name in state.active_processors:
         # If running, check if just paused
         processor = state.active_processors[request.book_name]
@@ -75,6 +79,8 @@ async def start_task(request: GenerateRequest, background_tasks: BackgroundTasks
              processor.resume()
              return {"message": f"Resumed task for {request.book_name}"}
         return {"message": f"Task for {request.book_name} is already running."}
+    
+    # 以后这里可以添加从数据库检查任务状态的逻辑，避免重复启动已完成的任务
     
     background_tasks.add_task(run_tts_task, request.book_name, request.config, request.chapter_ids)
     return {"message": f"Started generating audio for {request.book_name}"}
@@ -95,14 +101,39 @@ async def resume_task(book_name: str):
 
 @router.get("/status/{book_name}")
 async def task_status(book_name: str):
+    # 优先返回内存中的实时状态
     if book_name in state.active_processors:
         processor = state.active_processors[book_name]
         return {
             "is_running": True,
             "is_paused": not processor.pause_event.is_set(),
+            "status": "processing",
             "current_chapter": list(processor.processing_chapters)
         }
-    return {"is_running": False, "is_paused": False, "current_chapter": []}
+    
+    # 如果内存中没有，查询数据库 (历史/已完成状态)
+    try:
+        cursor = db.get_cursor()
+        cursor.execute(
+            "SELECT status, count(*) as count FROM tasks WHERE book_name = ? GROUP BY status", 
+            (book_name,)
+        )
+        rows = cursor.fetchall()
+        stats = {row['status']: row['count'] for row in rows}
+        
+        total = sum(stats.values())
+        if total > 0:
+            is_completed = stats.get('completed', 0) == total
+            return {
+                "is_running": False,
+                "is_paused": False,
+                "status": "completed" if is_completed else "stopped",
+                "stats": stats
+            }
+    except Exception as e:
+        logger.error(f"Error querying db status: {e}")
+
+    return {"is_running": False, "is_paused": False, "status": "idle", "current_chapter": []}
 
 @router.get("/logs/{book_name}")
 async def get_logs(book_name: str):

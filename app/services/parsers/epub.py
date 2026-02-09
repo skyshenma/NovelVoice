@@ -4,6 +4,9 @@ from ebooklib import epub
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any, Optional
 from .base import BaseParser
+import logging
+
+logger = logging.getLogger(__name__)
 
 class EpubParser(BaseParser):
     def parse(self, file_path: pathlib.Path) -> List[Dict[str, Any]]:
@@ -78,7 +81,7 @@ class EpubParser(BaseParser):
             # Check if we got anything. If not (e.g. empty spine?), fallback to item iteration?
             # Standard EPUBs should have spine.
             if not tasks:
-                print("Warning: No tasks extracted from Spine. Falling back to item iteration.")
+                logger.warning("Warning: No tasks extracted from Spine. Falling back to item iteration.")
                 # Fallback logic logic from old book_manager?
                 # iterating book.get_items() is risky for order.
                 # But if spine is broken, what choice do we have?
@@ -87,9 +90,7 @@ class EpubParser(BaseParser):
             return tasks
 
         except Exception as e:
-            print(f"Error parsing EPUB {file_path}: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error parsing EPUB {file_path}: {e}", exc_info=True)
             return []
 
     def _flatten_toc(self, toc, parent_title: Optional[str] = None) -> Dict[str, str]:

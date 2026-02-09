@@ -58,6 +58,22 @@ def setup_logger():
     console_handler.setLevel(LOG_LEVEL)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+    # ==================== 4. WebSocket 输出 ====================
+    from app.core.log_manager import log_manager
+    
+    class WebSocketLogHandler(logging.Handler):
+        def emit(self, record):
+            try:
+                msg = self.format(record)
+                log_manager.put_log(msg)
+            except Exception:
+                self.handleError(record)
+
+    ws_handler = WebSocketLogHandler()
+    ws_handler.setLevel(LOG_LEVEL)
+    ws_handler.setFormatter(formatter)
+    logger.addHandler(ws_handler)
     
     # 记录启动信息
     logging.info(f"🚀 日志系统初始化完成")

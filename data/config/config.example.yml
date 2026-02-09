@@ -48,6 +48,7 @@ paths:
   data_dir: "data"
   app_data_dir: "data/app"
   cache_dir: "data/cache"
+  db_dir: "data/db"
   
   # 路径自适应配置
   auto_detect: true           # 启用自动路径检测

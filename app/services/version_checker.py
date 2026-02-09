@@ -8,6 +8,9 @@ import aiohttp
 from typing import Optional, Dict
 from packaging import version
 import importlib.metadata
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VersionChecker:
@@ -39,7 +42,7 @@ class VersionChecker:
         except importlib.metadata.PackageNotFoundError:
             return None
         except Exception as e:
-            print(f"⚠️  获取 {package} 版本失败: {e}")
+            logger.warning(f"⚠️  获取 {package} 版本失败: {e}")
             return None
     
     async def get_latest_version(self, package: str) -> Optional[str]:
@@ -61,13 +64,13 @@ class VersionChecker:
                         data = await resp.json()
                         return data['info']['version']
                     else:
-                        print(f"⚠️  PyPI 返回状态码: {resp.status}")
+                        logger.warning(f"⚠️  PyPI 返回状态码: {resp.status}")
                         return None
         except asyncio.TimeoutError:
-            print(f"⚠️  获取 {package} 最新版本超时")
+            logger.warning(f"⚠️  获取 {package} 最新版本超时")
             return None
         except Exception as e:
-            print(f"⚠️  获取 {package} 最新版本失败: {e}")
+            logger.warning(f"⚠️  获取 {package} 最新版本失败: {e}")
             return None
     
     async def check_update(self, package: str = "edge-tts") -> Optional[Dict]:
@@ -81,32 +84,33 @@ class VersionChecker:
             更新信息字典,如果没有更新则返回 None
         """
         if self.checking:
-            print(f"⏳ 正在检查 {package} 版本...")
+            logger.info(f"⏳ 正在检查 {package} 版本...")
             return None
         
         self.checking = True
         try:
-            print(f"\n🔍 检查 {package} 版本更新...")
+
+            logger.info(f"🔍 检查 {package} 版本更新...")
             
             # 获取当前版本
             current = self.get_installed_version(package)
             if not current:
-                print(f"❌ 未找到 {package} 包")
+                logger.warning(f"❌ 未找到 {package} 包")
                 return None
             
-            print(f"   当前版本: {current}")
+            logger.info(f"   当前版本: {current}")
             
             # 获取最新版本
             latest = await self.get_latest_version(package)
             if not latest:
-                print(f"⚠️  无法获取 {package} 最新版本")
+                logger.warning(f"⚠️  无法获取 {package} 最新版本")
                 return None
             
-            print(f"   最新版本: {latest}")
+            logger.info(f"   最新版本: {latest}")
             
             # 比较版本
             if version.parse(latest) > version.parse(current):
-                print(f"📦 发现新版本: {current} → {latest}")
+                logger.info(f"📦 发现新版本: {current} → {latest}")
                 self.update_info = {
                     "package": package,
                     "current_version": current,
@@ -115,10 +119,10 @@ class VersionChecker:
                 }
                 return self.update_info
             else:
-                print(f"✅ {package} 已是最新版本")
+                logger.info(f"✅ {package} 已是最新版本")
                 return None
         except Exception as e:
-            print(f"❌ 版本检查失败: {e}")
+            logger.error(f"❌ 版本检查失败: {e}")
             return None
         finally:
             self.checking = False
@@ -135,7 +139,7 @@ class VersionChecker:
     def clear_update_info(self):
         """清除更新信息(用户忽略更新时调用)"""
         self.update_info = None
-        print("🔕 已忽略版本更新提示")
+        logger.info("🔕 已忽略版本更新提示")
 
 
 # 全局实例

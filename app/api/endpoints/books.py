@@ -9,25 +9,37 @@ import asyncio
 import zipfile
 import io
 import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import APP_DATA_DIR, CACHE_DIR
 from app.core.state import state
 from app.services.book_manager import BookProcessor
 from app.schemas.book import Book, Chapter
 from app.schemas.config import GenerateRequest
+from pydantic import BaseModel
+from typing import List
 
 router = APIRouter()
 
 def get_book_status(book_dir: pathlib.Path, book_name: str):
-    tasks_file = book_dir / "tasks.json"
-    if not tasks_file.exists():
-        return {"total": 0, "completed": 0, "status": "pending"}
-    
+    from app.db.database import db
     try:
-        with open(tasks_file, "r", encoding="utf-8") as f:
-            tasks = json.load(f)
-        total = len(tasks)
-        completed = sum(1 for t in tasks if t.get("status") == "completed")
+        cursor = db.get_cursor()
+        cursor.execute(
+            "SELECT status, count(*) as count FROM tasks WHERE book_name = ? GROUP BY status", 
+            (book_name,)
+        )
+        rows = cursor.fetchall()
+        
+        if not rows:
+            # 可能是新书或者未导入 DB
+            return {"total": 0, "completed": 0, "status": "pending"}
+
+        stats = {row['status']: row['count'] for row in rows}
+        total = sum(stats.values())
+        completed = stats.get('completed', 0)
         
         # Check if actually running
         is_running = book_name in state.active_processors
@@ -40,7 +52,8 @@ def get_book_status(book_dir: pathlib.Path, book_name: str):
             status = "pending" # Paused or not started
             
         return {"total": total, "completed": completed, "status": status}
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error getting book status: {e}")
         return {"total": 0, "completed": 0, "status": "error"}
 
 @router.get("/books", response_model=None) # /api/books
@@ -71,35 +84,83 @@ async def upload_book(file: UploadFile = File(...)):
         processor = BookProcessor(str(file_path))
         await asyncio.to_thread(processor.process)
         
+        logger.info(f"📚 Book uploaded and processed: {file.filename}")
+        
         return {"message": f"Successfully uploaded and processed {file.filename}"}
     except Exception as e:
+        logger.error(f"Upload failed for {file.filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/books/{book_name}")
+async def delete_book(book_name: str):
+    """删除书籍及其所有文件"""
+    # 1. 检查是否正在运行
+    if book_name in state.active_processors:
+        raise HTTPException(status_code=400, detail="Cannot delete book while processing. Please stop the task first.")
+    
+    # 2. 删除数据库记录
+    from app.db.database import db
+    try:
+        db.delete_book_tasks(book_name)
+    except Exception as e:
+        # 记录错误但继续尝试删除文件
+        logger.error(f"Error deleting DB records for {book_name}: {e}")
+
+    # 3. 删除文件目录
+    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    if book_dir.exists():
+        try:
+            shutil.rmtree(book_dir)
+        except Exception as e:
+            logger.error(f"Failed to delete book directory for {book_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete book directory: {e}")
+
+    # 4. 删除源文件 (txt/epub)
+    # 遍历 APP_DATA_DIR 找到同名文件 (忽略扩展名)
+    try:
+        for item in APP_DATA_DIR.iterdir():
+            if item.is_file() and item.stem == book_name:
+                # 排除数据库文件和配置文件，防止误删 (虽然一般名字对不上)
+                if item.suffix.lower() in ['.db', '.sql', '.log', '.yml', '.yaml', '.json']:
+                    continue
+                
+                try:
+                    item.unlink()
+                    logger.info(f"Deleted source file: {item.name}")
+                except Exception as e:
+                    logger.error(f"Failed to delete source file {item.name}: {e}")
+    except Exception as e:
+         logger.error(f"Error scanning for source files: {e}")
+            
+    logger.info(f"🗑️ Book deleted: {book_name}")
+    return {"message": f"Book '{book_name}' deleted successfully"}
 
 @router.get("/chapters/{book_name}")
 async def list_chapters_api(book_name: str):
     book_dir = APP_DATA_DIR / f"{book_name}_audio"
     if not book_dir.exists():
+        # 如果目录不存在，检查数据库（可能目录被删了但库还在？）
+        # 这里还是保持一致性，如果文件夹不在也不应该有任务
         raise HTTPException(status_code=404, detail="Book not found")
         
-    tasks_file = book_dir / "tasks.json"
-    if not tasks_file.exists():
-        return []
-
+    from app.db.database import db
     try:
-        with open(tasks_file, "r", encoding="utf-8") as f:
-            tasks = json.load(f)
-            # Return full details including length
-            return [{
-                "id": t.get("id"),
-                "title": t.get("title"),
-                "status": t.get("status", "pending"),
-                "length": len(t.get("content", ""))
-            } for t in tasks]
+        cursor = db.get_cursor()
+        cursor.execute("SELECT * FROM tasks WHERE book_name = ? ORDER BY chapter_index", (book_name,))
+        rows = cursor.fetchall()
+        
+        if not rows:
+             return []
+
+        # Return full details
+        return [{
+            "id": row['chapter_index'], # 注意：DB里的 id 是 string ID，前端可能期待 int index
+            "title": row['title'],
+            "status": row['status'],
+            "length": len(row['content']) if row['content'] else 0
+        } for row in rows]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-from pydantic import BaseModel
-from typing import List
 
 class CleanRequest(BaseModel):
     chapter_ids: List[int]
@@ -114,39 +175,48 @@ async def clean_chapters(book_name: str, request: CleanRequest):
     if book_name in state.active_processors:
         raise HTTPException(status_code=400, detail="Cannot clean while task is running. Please pause or stop first.")
 
-    tasks_file = book_dir / "tasks.json"
-    if not tasks_file.exists():
-        return {"message": "No tasks file found"}
-
+    from app.db.database import db
     try:
-        # Load tasks
-        with open(tasks_file, "r", encoding="utf-8") as f:
-            tasks = json.load(f)
+        conn = db.conn
+        if not conn:
+            db.connect()
+            conn = db.conn
+            
+        cursor = conn.cursor()
         
-        updated = False
-        target_ids = set(request.chapter_ids)
+        # 1. 查找需要清理的任务以获取文件名
+        placeholders = ','.join(['?'] * len(request.chapter_ids))
+        query = f"SELECT chapter_index, title, audio_path FROM tasks WHERE book_name = ? AND chapter_index IN ({placeholders})"
+        cursor.execute(query, (book_name, *request.chapter_ids))
+        rows = cursor.fetchall()
         
-        for task in tasks:
-            if task["id"] in target_ids:
-                # 1. Reset status
-                task["status"] = "pending"
-                if "audio_path" in task:
-                    del task["audio_path"]
-                
-                # 2. Delete file
-                safe_title = str(task["title"]).replace("/", "_").replace("\\", "_")
-                filename = f"{task['id']:04d}-{safe_title}.mp3"
-                file_path = book_dir / filename
+        if not rows:
+            return {"message": "No matching chapters found"}
+
+        cleaned_count = 0
+        for row in rows:
+            # Delete file
+            # 优先使用数据库记录的路径
+            if row['audio_path']:
+                file_path = book_dir / row['audio_path']
                 if file_path.exists():
                     file_path.unlink()
-                
-                updated = True
+            else:
+                # 备用方案: 构造文件名
+                safe_title = str(row['title']).replace("/", "_").replace("\\", "_")
+                filename = f"{row['chapter_index']:04d}-{safe_title}.mp3"
+                file_path = book_dir / filename
+                if file_path.exists():
+                     file_path.unlink()
 
-        if updated:
-            with open(tasks_file, "w", encoding="utf-8") as f:
-                json.dump(tasks, f, ensure_ascii=False, indent=2)
+            cleaned_count += 1
+            
+        # 2. Reset status in DB
+        update_query = f"UPDATE tasks SET status = 'pending', audio_path = NULL WHERE book_name = ? AND chapter_index IN ({placeholders})"
+        cursor.execute(update_query, (book_name, *request.chapter_ids))
+        conn.commit()
                 
-        return {"message": f"Cleaned {len(target_ids)} chapters"}
+        return {"message": f"Cleaned {cleaned_count} chapters"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

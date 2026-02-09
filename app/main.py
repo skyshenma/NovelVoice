@@ -50,7 +50,12 @@ async def startup_event():
     logging.info("🚀 NovelVoice 启动完成")
     
     # 后台检查版本更新
+    # 后台检查版本更新
     asyncio.create_task(check_version_on_startup())
+    
+    # 启动日志广播
+    from app.core.log_manager import log_manager
+    asyncio.create_task(log_manager.start_broadcasting())
 
 
 async def check_version_on_startup():
