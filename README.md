@@ -28,6 +28,7 @@
 ## 📋 环境要求
 
 - **Python**: 3.12+
+- **FFmpeg**: 需配置在系统环境变量中 (用于长章节合并)
 - **Docker**: 20.10+ (可选)
 - **操作系统**: Windows / macOS / Linux
 
@@ -217,7 +218,7 @@ NovelVoice/
 ├── data/                  # 数据目录
 │   ├── config/           # 配置文件
 │   ├── app/              # 书籍和音频
-│   ├── db/               # SQLite 数据库目录 (v1.3.0+)
+│   ├── db/               # 检查并迁移数据库文件 (v1.3.1+)
 │   └── cache/            # 缓存文件
 ├── static/               # Web 界面
 ├── Dockerfile            # Docker 镜像

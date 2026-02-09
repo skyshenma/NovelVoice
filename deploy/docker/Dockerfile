@@ -28,6 +28,7 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
@@ -37,6 +38,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY app ./app
 COPY static ./static
+COPY docs ./docs
 COPY data/config/config.example.yml ./data/config/
 
 # Create necessary directories

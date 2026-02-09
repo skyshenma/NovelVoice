@@ -315,22 +315,48 @@ class TTSProcessor:
 
         # 分别合成
         temp_files = []
+        list_file = output_path.with_suffix(".txt")
         try:
             for i, chunk in enumerate(chunks):
                 temp_file = output_path.with_name(f"{output_path.stem}_part{i}.mp3")
                 temp_files.append(temp_file)
                 await self._synthesize_with_retry(chunk, temp_file)
             
-            async with aiofiles.open(output_path, 'wb') as outfile:
-                for temp_file in temp_files:
-                    async with aiofiles.open(temp_file, 'rb') as infile:
-                        data = await infile.read()
-                        await outfile.write(data)
+            # 使用 FFmpeg 合并
+            # 1. 生成文件列表内容
+            list_content = "\n".join([f"file '{f.name}'" for f in temp_files])
+            async with aiofiles.open(list_file, 'w', encoding='utf-8') as f:
+                await f.write(list_content)
+            
+            # 2. 执行 FFmpeg 命令
+            # -y 覆盖已存在文件, -f concat 指定合并模式, -safe 0 允许相对路径
+            # -c copy 指直接流拷贝，不重新编码
+            cmd = [
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", str(list_file), "-c", "copy", str(output_path)
+            ]
+            
+            self.log(f"FFmpeg 合并开始: {output_path.name}")
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                error_msg = stderr.decode().strip()
+                raise Exception(f"FFmpeg 合并失败 (code {process.returncode}): {error_msg}")
+            
+            self.log(f"FFmpeg 合并完成: {output_path.name}")
                         
         finally:
+            # 清理临时文件
             for f in temp_files:
                 if f.exists():
                     f.unlink()
+            if list_file.exists():
+                list_file.unlink()
 
     async def preview_speech(self, text: str, max_chars: int = 50) -> bytes:
         """生成预览音频 (仅内存)"""

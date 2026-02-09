@@ -9,6 +9,7 @@
 - **Python**: 3.12 或更高版本
 - **磁盘空间**: 至少 500MB
 - **内存**: 建议 2GB 以上
+- **FFmpeg**: 需配置在系统环境变量中 (用于长章节合并)
 - **网络**: 需要访问 Microsoft Edge TTS 服务
 
 ---
@@ -265,6 +266,9 @@ sudo apt update
 
 # 安装 Python 3.12
 sudo apt install -y python3.12 python3.12-venv python3.12-dev
+
+# 安装 FFmpeg
+sudo apt install -y ffmpeg
 
 # 验证安装
 python3.12 --version

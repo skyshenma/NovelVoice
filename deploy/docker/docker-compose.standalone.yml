@@ -26,6 +26,8 @@ services:
       # 可选: TTS 配置
       # - NOVELVOICE_TTS_VOICE=zh-CN-XiaoxiaoNeural
       - TZ=America/Los_Angeles
+      # 应用版本 (可选, 用于显式覆盖, 默认会自动从 docs/changelog.md 提取)
+      # - NOVELVOICE_VERSION=1.3.2
       # - NOVELVOICE_TTS_CONCURRENCY=2
 
       # 可选: Bark 通知

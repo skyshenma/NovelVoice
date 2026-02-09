@@ -10,6 +10,38 @@ from app.core.config_loader import get_config
 # 初始化配置加载器
 config = get_config()
 
+import re
+
+def _extract_version():
+    """从更新日志或环境变量中提取版本号"""
+    # 1. 优先从环境变量获取 (用于 Docker 部署时显式指定)
+    env_version = os.getenv("NOVELVOICE_VERSION")
+    if env_version:
+        return env_version.lstrip('v')
+
+    # 2. 尝试从更新日志中提取
+    changelog_paths = [
+        pathlib.Path(__file__).resolve().parent.parent.parent / "docs" / "changelog.md",
+        pathlib.Path(__file__).resolve().parent.parent.parent / "CHANGELOG.md"
+    ]
+    
+    for path in changelog_paths:
+        if path.exists():
+            try:
+                content = path.read_text(encoding='utf-8')
+                # 寻找第一个 ## [x.y.z] 模式
+                match = re.search(r'##\s*\[(\d+\.\d+\.\d+)\]', content)
+                if match:
+                    return match.group(1)
+            except Exception:
+                continue
+    
+    # 3. 最后的回退方案
+    return "1.3.1"
+
+# 应用版本 (自动从 CHANGELOG 提取)
+VERSION = _extract_version()
+
 # ==================== 路径自适应系统 ====================
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
 

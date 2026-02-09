@@ -95,8 +95,10 @@ volumes:
 │       ├── Dockerfile      # 构建文件
 │       ├── docker-compose.build.yml  # 源码构建配置
 │       ├── docker-compose.dev.yml    # 开发调试配置
+│       ├── docker-compose.standalone.yml # 独立镜像部署配置
 │       └── entrypoint.sh   # 启动脚本
 ├── docker-compose.yml      # 便捷部署配置 (根目录)
+├── docker-compose.simple.yml # 单文件部署示例 (根目录)
 ├── data/                   # 数据根目录
 │   ├── config/
 │   │   └── config.yml      # 配置文件
@@ -229,7 +231,7 @@ docker run -d \
 vim data/config/config.yml
 
 # 重启服务使配置生效
-docker-compose -f deploy/docker/compose.yml restart
+docker-compose restart
 ```
 
 ---

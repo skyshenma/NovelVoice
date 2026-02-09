@@ -23,7 +23,7 @@ class Database:
             # 确保目录存在
             DB_PATH.parent.mkdir(parents=True, exist_ok=True)
             
-            # 检查并迁移数据库文件 (v1.3.0+)
+            # 检查并迁移数据库文件 (v1.3.1+)
             old_db_path = APP_DATA_DIR / "novelvoice.db"
             if old_db_path.exists() and not DB_PATH.exists():
                 logger.info(f"📦 检测到旧数据库文件，正在迁移: {old_db_path} -> {DB_PATH}")
