@@ -7,6 +7,21 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.2.1] - 2026-02-08
+
+### 改进
+- **配置加载优化**：默认配置从 `config.example.yml` 动态加载，不再硬编码
+  - 更新默认配置只需修改 `config.example.yml`，无需修改代码
+  - 减少约 80 行硬编码配置，提高可维护性
+  - 保留最小化硬编码配置作为最后的后备方案
+- **全面移除硬编码值**：所有配置参数现在都从 `config.yml` 读取
+  - TTS 引擎：`max_chars`、`timeout`、`max_logs` 从配置读取
+  - Bark 通知：静默时间段（`silent_hours`）和 HTTP 超时（`http_timeout`）可配置
+  - 文本处理：`chunk_size` 从配置读取
+  - 新增配置项：`logging.max_logs`、`bark.silent_hours`、`bark.http_timeout`、`tts.timeout`
+
+## [1.2.0] - 2026-02-08
+
 ### 新增
 - 书籍详情页面新增章节筛选功能，支持按状态筛选（全部/已完成/失败/等待中）
 - 筛选器显示各状态的章节数量，方便快速定位
@@ -23,16 +38,6 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 - 将"打开文件夹"按钮更名为"文件管理"，提供更友好的文件管理体验
 - 新增 `/api/files/{book_name}` 端点用于获取文件列表
 - 新增 `/api/file/{book_name}/{file_id}` 端点用于下载单个文件
-- **配置加载优化**：默认配置从 `config.example.yml` 动态加载，不再硬编码
-  - 更新默认配置只需修改 `config.example.yml`，无需修改代码
-  - 减少约 80 行硬编码配置，提高可维护性
-  - 保留最小化硬编码配置作为最后的后备方案
-- **全面移除硬编码值**：所有配置参数现在都从 `config.yml` 读取
-  - TTS 引擎：`max_chars`、`timeout`、`max_logs` 从配置读取
-  - Bark 通知：静默时间段（`silent_hours`）和 HTTP 超时（`http_timeout`）可配置
-  - 文本处理：`chunk_size` 从配置读取
-  - 新增配置项：`logging.max_logs`、`bark.silent_hours`、`bark.http_timeout`、`tts.timeout`
-
 
 ## [1.1.2] - 2026-02-08
 
