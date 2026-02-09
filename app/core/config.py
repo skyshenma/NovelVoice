@@ -79,12 +79,18 @@ def setup_adaptive_paths():
     # ==================== 应用数据目录 ====================
     env_app_data_dir = get_env_path("NOVELVOICE_APP_DATA_DIR")
     if env_app_data_dir:
+        # 用户显式指定了 APP_DATA_DIR
         APP_DATA_DIR = env_app_data_dir
+    elif env_data_dir:
+        # DATA_DIR 来自环境变量，优先使用 DATA_DIR/app
+        APP_DATA_DIR = DATA_DIR / "app"
     elif AUTO_DETECT:
+        # 自动检测可用路径
         app_data_config = config.get("paths.app_data_dir")
         app_candidates = path_adapter.get_candidates(PathType.APP_DATA, app_data_config)
         APP_DATA_DIR = path_adapter.find_writable_path(app_candidates) or DATA_DIR / "app"
     else:
+        # 使用配置文件路径
         app_data_dir_str = config.get("paths.app_data_dir", "data/app")
         APP_DATA_DIR = BASE_DIR / app_data_dir_str if not pathlib.Path(app_data_dir_str).is_absolute() else pathlib.Path(app_data_dir_str)
     
@@ -93,12 +99,18 @@ def setup_adaptive_paths():
     # ==================== 缓存目录 ====================
     env_cache_dir = get_env_path("NOVELVOICE_CACHE_DIR")
     if env_cache_dir:
+        # 用户显式指定了 CACHE_DIR
         CACHE_DIR = env_cache_dir
+    elif env_data_dir:
+        # DATA_DIR 来自环境变量，优先使用 DATA_DIR/cache
+        CACHE_DIR = DATA_DIR / "cache"
     elif AUTO_DETECT:
+        # 自动检测可用路径
         cache_config = config.get("paths.cache_dir")
         cache_candidates = path_adapter.get_candidates(PathType.CACHE, cache_config)
         CACHE_DIR = path_adapter.find_writable_path(cache_candidates) or DATA_DIR / "cache"
     else:
+        # 使用配置文件路径
         cache_dir_str = config.get("paths.cache_dir", "data/cache")
         CACHE_DIR = BASE_DIR / cache_dir_str if not pathlib.Path(cache_dir_str).is_absolute() else pathlib.Path(cache_dir_str)
     

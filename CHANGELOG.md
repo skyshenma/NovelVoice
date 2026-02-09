@@ -7,6 +7,11 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+### 修复
+- **Docker 路径配置问题**：修复在 Docker 环境中设置 `NOVELVOICE_DATA_DIR` 后，`APP_DATA_DIR` 和 `CACHE_DIR` 未正确使用该路径的问题
+  - 现在当设置 `NOVELVOICE_DATA_DIR=/data` 时，系统会自动使用 `/data/app` 和 `/data/cache`
+  - 简化 Docker 配置，用户只需设置一个环境变量即可
+
 ## [1.2.1] - 2026-02-08
 
 ### 改进
