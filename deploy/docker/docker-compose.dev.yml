@@ -15,18 +15,15 @@ services:
       - "8000:8000"
 
     volumes:
-      # 数据持久化
+      # 数据持久化 (包含子目录 app, db, cache, config)
       - ../../data:/app/data
-      # 数据库持久化
-      - ../../data/db:/app/data/db
       # 时区同步
       - /etc/localtime:/etc/localtime:ro
 
+      # 开发代码挂载 (热重载)
       - ../../app:/app/app
       - ../../static:/app/static
       - ../../docs:/app/docs
-      # 挂载配置目录 (方便本地编辑)
-      - ../../data/config:/app/data/config
 
     # 热重载命令
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

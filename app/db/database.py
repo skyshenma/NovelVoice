@@ -5,7 +5,7 @@ import shutil
 import logging
 
 logger = logging.getLogger(__name__)
-from app.core.config import APP_DATA_DIR, DB_DIR
+from app.core.config import APP_DATA_DIR, DB_DIR, DATA_DIR
 
 DB_PATH = DB_DIR / "novelvoice.db"
 
@@ -24,14 +24,21 @@ class Database:
             DB_PATH.parent.mkdir(parents=True, exist_ok=True)
             
             # 检查并迁移数据库文件 (v1.3.1+)
-            old_db_path = APP_DATA_DIR / "novelvoice.db"
-            if old_db_path.exists() and not DB_PATH.exists():
-                logger.info(f"📦 检测到旧数据库文件，正在迁移: {old_db_path} -> {DB_PATH}")
-                try:
-                    shutil.move(str(old_db_path), str(DB_PATH))
-                    logger.info("✅ 数据库文件迁移成功")
-                except Exception as e:
-                    logger.error(f"❌ 数据库文件迁移失败: {e}")
+            # 优先级: APP_DATA_DIR/novelvoice.db (v1.3.1) > DATA_DIR/novelvoice.db (root v1.3.0)
+            migration_sources = [
+                APP_DATA_DIR / "novelvoice.db",
+                DATA_DIR / "novelvoice.db"
+            ]
+            
+            for old_db_path in migration_sources:
+                if old_db_path.exists() and not DB_PATH.exists() and old_db_path != DB_PATH:
+                    logger.info(f"📦 检测到旧数据库文件，正在迁移: {old_db_path} -> {DB_PATH}")
+                    try:
+                        shutil.move(str(old_db_path), str(DB_PATH))
+                        logger.info(f"✅ 数据库文件迁移成功: {old_db_path.name}")
+                        break # Only migrate one
+                    except Exception as e:
+                        logger.error(f"❌ 数据库文件迁移失败: {e}")
 
             self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
             self.conn.row_factory = sqlite3.Row
@@ -82,9 +89,33 @@ class Database:
 
         cursor = self.conn.cursor()
         
-        for book_dir in APP_DATA_DIR.iterdir():
-            if book_dir.is_dir() and book_dir.name.endswith("_audio"):
-                book_name = book_dir.name.replace("_audio", "").strip()
+        # 扫描目录列表
+        search_dirs = []
+        if APP_DATA_DIR.exists():
+            search_dirs.append(APP_DATA_DIR)
+        if DATA_DIR.exists() and DATA_DIR != APP_DATA_DIR:
+            search_dirs.append(DATA_DIR)
+
+        for search_dir in search_dirs:
+            for book_dir in search_dir.iterdir():
+                if book_dir.is_dir() and book_dir.name.endswith("_audio"):
+                    # 如果该目录不在 APP_DATA_DIR 中，尝试迁移它
+                    target_dir = APP_DATA_DIR / book_dir.name
+                    if book_dir.parent != APP_DATA_DIR:
+                        if not target_dir.exists():
+                            logger.info(f"📦 发现不在 app 子目录的书籍文件夹，正在移动: {book_dir.name}")
+                            try:
+                                APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+                                shutil.move(str(book_dir), str(target_dir))
+                                book_dir = target_dir # 更新指针以进行后续 DB 迁移
+                            except Exception as e:
+                                logger.error(f"❌ 移动书籍文件夹失败 {book_dir.name}: {e}")
+                                continue
+                        else:
+                            # 目标已存在，跳过此源目录（用户可能手动处理过一部分）
+                            continue
+
+                    book_name = book_dir.name.replace("_audio", "").strip()
                 tasks_file = book_dir / "tasks.json"
                 
                 if not tasks_file.exists():

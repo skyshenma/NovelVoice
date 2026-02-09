@@ -40,8 +40,9 @@ def get_book_dir(book_name: str) -> pathlib.Path:
     # 3. 实在找不到，返回常规路径（即使不存在）
     return APP_DATA_DIR / f"{book_name}_audio"
 
-def get_book_status(book_dir: pathlib.Path, book_name: str):
+def get_book_status(book_name: str):
     from app.db.database import db
+    book_dir = get_book_dir(book_name)
     try:
         cursor = db.get_cursor()
         cursor.execute(
@@ -83,7 +84,7 @@ async def list_books():
         if item.is_dir() and item.name.endswith("_audio"):
             # Trim book_name to remove potential trailing spaces from filesystem
             book_name = item.name.replace("_audio", "").strip()
-            status_info = get_book_status(item, book_name)
+            status_info = get_book_status(book_name)
             books.append({
                 "name": book_name,
                 "path": str(item),
@@ -125,7 +126,7 @@ async def delete_book(book_name: str):
         logger.error(f"Error deleting DB records for {book_name}: {e}")
 
     # 3. 删除文件目录
-    book_dir = APP_DATA_DIR / f"{book_name}_audio"
+    book_dir = get_book_dir(book_name)
     if book_dir.exists():
         try:
             shutil.rmtree(book_dir)
