@@ -39,6 +39,7 @@ async def index():
 
 # ==================== 启动事件 ====================
 
+
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
@@ -48,8 +49,23 @@ async def startup_event():
     
     import logging
     logging.info("🚀 NovelVoice 启动完成")
+
+    # [Patch] Startup Reset: 清理残留的临时打包文件
+    try:
+        from app.core.config import EXPORT_DIR
+        if EXPORT_DIR.exists():
+            cleaned_count = 0
+            for temp_file in EXPORT_DIR.glob("*_temp.zip"):
+                try:
+                    temp_file.unlink()
+                    cleaned_count += 1
+                except Exception as e:
+                    logging.error(f"Failed to clean temp file {temp_file}: {e}")
+            if cleaned_count > 0:
+                logging.info(f"🧹 Startup: Cleaned {cleaned_count} interrupted packing tasks.")
+    except Exception as e:
+        logging.error(f"Startup cleanup failed: {e}")
     
-    # 后台检查版本更新
     # 后台检查版本更新
     asyncio.create_task(check_version_on_startup())
     

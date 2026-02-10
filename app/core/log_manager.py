@@ -22,29 +22,51 @@ class LogConnectionManager:
         if self._broadcasting:
             return
         self._broadcasting = True
+        self.loop = asyncio.get_running_loop() # Store the loop for cross-thread access
+        
+        # Start heartbeat task
+        asyncio.create_task(self._heartbeat())
+        
         while True:
             try:
                 message = await self.log_queue.get()
                 await self._broadcast(message)
             except Exception as e:
                 print(f"Error broadcasting log: {e}")
+
+    async def _heartbeat(self):
+        """Sends a ping every 30s to keep connections alive"""
+        while True:
+            await asyncio.sleep(30)
+            if self.active_connections:
+                await self._broadcast("_PING_")
                 
     async def _broadcast(self, message: str):
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except Exception:
-                # If sending fails, remove the connection
-                self.disconnect(connection)
+        # Create tasks for all connections to avoid blocking if one hangs
+        tasks = []
+        for connection in self.active_connections[:]: # Copy list to avoid modification during iteration
+            tasks.append(self._send_to_connection(connection, message))
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _send_to_connection(self, connection: WebSocket, message: str):
+        try:
+            await connection.send_text(message)
+        except Exception:
+            self.disconnect(connection)
 
     def put_log(self, message: str):
-        """Called by logging handler (sync) to put log into async queue"""
-        # We need to access the loop safely
+        """Called by logic (sync or async) to put log into broadcast queue"""
+        # Try to use stored loop for thread-safe access
         try:
-            loop = asyncio.get_running_loop()
-            loop.call_soon_threadsafe(self.log_queue.put_nowait, message)
-        except RuntimeError:
-            # No running loop (e.g. during startup/shutdown), ignore or print
-            pass
+            if hasattr(self, 'loop') and self.loop:
+                self.loop.call_soon_threadsafe(self.log_queue.put_nowait, message)
+            else:
+                # Fallback to current loop if possible
+                loop = asyncio.get_running_loop()
+                loop.call_soon_threadsafe(self.log_queue.put_nowait, message)
+        except Exception as e:
+            # Fallback for sync threads without loop access at startup/shutdown
+            print(f"⚠️ Log queue failed for: {message[:50]}... Error: {e}")
 
 log_manager = LogConnectionManager()

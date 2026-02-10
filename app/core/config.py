@@ -148,6 +148,11 @@ def setup_adaptive_paths():
     
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+    # ==================== 导出目录 ====================
+    global EXPORT_DIR
+    EXPORT_DIR = DATA_DIR / "export"
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
     # ==================== 数据库目录 ====================
     env_db_dir = get_env_path("NOVELVOICE_DB_DIR")
     if env_db_dir:

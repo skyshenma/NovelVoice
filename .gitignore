@@ -27,8 +27,12 @@ build/
 # 数据文件
 data/app/*
 !data/app/.gitkeep
+
 data/cache/*
 !data/cache/.gitkeep
+data/export/*
+!data/export/.gitkeep
+
 
 # 配置文件 (保护敏感信息)
 # 主配置文件包含敏感信息,不提交到仓库

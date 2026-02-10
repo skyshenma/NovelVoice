@@ -60,9 +60,23 @@ class Database:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # 创建资产表 v1.4.0 (支持多版本打包下载)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS book_assets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_name TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                description TEXT,
+                size_str TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         # 创建索引以加速查询
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_book_name ON tasks (book_name)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_status ON tasks (status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_asset_book ON book_assets (book_name)")
         self.conn.commit()
         
         # 尝试迁移旧数据

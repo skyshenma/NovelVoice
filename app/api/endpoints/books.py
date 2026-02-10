@@ -1,4 +1,4 @@
-
+import time
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse, StreamingResponse
 import shutil
@@ -10,16 +10,20 @@ import zipfile
 import io
 import subprocess
 import logging
+import threading
+import shutil
+import re
 
 logger = logging.getLogger(__name__)
 
-from app.core.config import APP_DATA_DIR, CACHE_DIR
+from app.core.config import APP_DATA_DIR, CACHE_DIR, EXPORT_DIR
 from app.core.state import state
+from app.core.log_manager import log_manager
 from app.services.book_manager import BookProcessor
 from app.schemas.book import Book, Chapter
 from app.schemas.config import GenerateRequest
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -69,7 +73,43 @@ def get_book_status(book_name: str):
         else:
             status = "pending" # Paused or not started
             
-        return {"total": total, "completed": completed, "status": status}
+    
+        # Check zip status from DB
+        zip_assets = []
+        cursor.execute(
+            "SELECT id, filename, description, size_str, created_at FROM book_assets WHERE book_name = ? ORDER BY created_at DESC",
+            (book_name,)
+        )
+        asset_rows = cursor.fetchall()
+        for row in asset_rows:
+            # Verify file exists on disk
+            asset_path = EXPORT_DIR / row['filename']
+            if asset_path.exists():
+                zip_assets.append({
+                    "id": row['id'],
+                    "filename": row['filename'],
+                    "description": row['description'],
+                    "size": row['size_str'],
+                    "created_at": row['created_at']
+                })
+            else:
+                # Optionally cleanup missing files from DB
+                cursor.execute("DELETE FROM book_assets WHERE id = ?", (row['id'],))
+        db.commit()
+
+        zip_status = "none"
+        if book_name in state.active_packers:
+            zip_status = state.active_packers[book_name]
+        elif zip_assets:
+            zip_status = "ready"
+
+        return {
+            "total": total, 
+            "completed": completed, 
+            "status": status, 
+            "zip_status": zip_status,
+            "zip_assets": zip_assets
+        }
     except Exception as e:
         logger.error(f"Error getting book status: {e}")
         return {"total": 0, "completed": 0, "status": "error"}
@@ -133,6 +173,15 @@ async def delete_book(book_name: str):
         except Exception as e:
             logger.error(f"Failed to delete book directory for {book_name}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to delete book directory: {e}")
+
+    # 3.5 删除所有相关资产 (zip)
+    try:
+        zip_path = EXPORT_DIR / f"{book_name}.zip"
+        if zip_path.exists():
+            zip_path.unlink()
+            logger.info(f"Deleted zip asset for {book_name}")
+    except Exception as e:
+        logger.error(f"Failed to delete zip asset for {book_name}: {e}")
 
     # 4. 删除源文件 (txt/epub)
     # 遍历 APP_DATA_DIR 找到同名文件 (忽略扩展名)
@@ -298,30 +347,300 @@ async def download_single_file(book_name: str, file_id: int):
     
     raise HTTPException(status_code=404, detail="File not found")
 
-@router.get("/download/{book_name}")
-async def download_book_audio(book_name: str):
-    """打包下载音频"""
-    # Locate book dir
-    target_dir = get_book_dir(book_name)
+    
+    raise HTTPException(status_code=404, detail="File not found")
+
+def check_disk_space(target_dir: pathlib.Path, min_mb: int = 500):
+    """Ensure sufficient disk space (default 500MB)"""
+    try:
+        total, used, free = shutil.disk_usage(target_dir)
+        if free < min_mb * 1024 * 1024:
+            raise Exception(f"磁盘空间不足! 需要 {min_mb}MB, 剩余 {free // (1024*1024)}MB")
+    except Exception as e:
+        logger.error(f"Disk check failed: {e}")
+        raise e
+
+def sanitize_filename(name: str) -> str:
+    """Sanitize filename to prevent path traversal and shell injection"""
+    # Remove dangerous characters
+    name = re.sub(r'[\\/*?:"<>|]', "", name)
+    name = name.strip()
+    # Ensure it's not empty or just dots
+    if not name or name.replace(".", "") == "":
+        name = "unnamed_file"
+    return name
+
+def pack_book_task(book_name: str, target_dir: pathlib.Path, cancel_event: threading.Event, description: str = "Full Pack", file_ids: Optional[List[int]] = None):
+    """Background task for packing book audio with cancellation support and unique naming"""
+    temp_zip_path = None
+    try:
+        # [Patch] Disk Check
+        check_disk_space(EXPORT_DIR)
+
+        # Check if dir exists
+        if not target_dir.exists():
+            logger.error(f"📚 Book dir not found for packing: {book_name}")
+            return
             
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # [Patch] Filename Safety & Uniqueness
+        safe_book_name = sanitize_filename(book_name)
+        
+        # Determine dynamic filename based on description (e.g., "Chapters: 1-10" -> "1-10")
+        range_label = "Full"
+        if description.startswith("Chapters:"):
+            range_label = description.replace("Chapters:", "").strip().replace(" ", "")
+        elif description.startswith("Range:"):
+            range_label = description.replace("Range:", "").strip().replace(" ", "")
+        elif description.startswith("Files:"):
+            # Try to get cleaner range if it looks like "1,2,3"
+            files_str = description.replace("Files:", "").strip()
+            if "," in files_str:
+                parts = [p.strip() for p in files_str.split(',')]
+                if len(parts) > 2:
+                    range_label = f"{parts[0]}-{parts[-1]}"
+                else:
+                    range_label = files_str.replace(",", "-")
+            else:
+                range_label = files_str
+        
+        if not range_label or range_label == "Selected":
+            range_label = "Pack"
+
+        # Clean range label for filename safety
+        safe_range = sanitize_filename(range_label)
+        file_basename = f"{safe_book_name}_{safe_range}.zip"
+        
+        # Use timestamp for temp file to ensure unique background operations
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        temp_zip_path = EXPORT_DIR / f"{safe_book_name}_temp_{timestamp}.zip"
+        final_zip_path = EXPORT_DIR / file_basename
+
+        # 1. Collect files
+        # ... (scanning logic remains same)
+        files_to_zip = []
+        for root, dirs, files in os.walk(target_dir):
+            if cancel_event.is_set():
+                raise asyncio.CancelledError("Task cancelled during file scanning")
+                
+            for file in files:
+                if file.endswith(".mp3"):
+                    # Check if we should filter by ID
+                    # Our files are named like "001_Title.mp3", id is usually extracted
+                    file_path = os.path.join(root, file)
+                    arcname = sanitize_filename(file)
+                    
+                    if file_ids is not None:
+                        # Improved fid extraction: handle 0001-Title.mp3 or 001_Title.mp3
+                        try:
+                            match = re.match(r'^(\d+)', file)
+                            if match:
+                                fid = int(match.group(1))
+                                if fid not in file_ids:
+                                    continue
+                            else:
+                                # If no leading digits, only include if not filtering
+                                continue
+                        except (ValueError, IndexError):
+                            if description != "Full Pack":
+                                continue
+                                
+                    files_to_zip.append((file_path, arcname))
+        
+        total_files = len(files_to_zip)
+        logger.info(f"📦 开始打包 '{book_name}' [{description}] (共 {total_files} 个文件)...")
+        log_manager.put_log(f"📦 开始打包 '{book_name}' [{description}] (共 {total_files} 个文件)...")
+
+        # 2. Write zip
+        with zipfile.ZipFile(temp_zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=3, allowZip64=True) as zip_file:
+            for i, (file_path, arcname) in enumerate(files_to_zip):
+                if cancel_event.is_set():
+                    raise asyncio.CancelledError("Task cancelled during zipping")
+                
+                with open(file_path, 'rb') as src_file:
+                    with zip_file.open(arcname, 'w') as dest_file:
+                        while True:
+                            if cancel_event.is_set():
+                                raise asyncio.CancelledError("Task cancelled inner loop")
+                            chunk = src_file.read(1024 * 1024)
+                            if not chunk: break
+                            dest_file.write(chunk)
+                
+                if total_files > 0 and (i + 1) % max(1, total_files // 20) == 0:
+                    percent = int((i + 1) / total_files * 100)
+                    log_manager.put_log(f"📦 '{book_name}' 打包进度: {percent}% ({i + 1}/{total_files})")
+
+        # Move to final and register in DB
+        if temp_zip_path.exists():
+            if cancel_event.is_set():
+                 raise asyncio.CancelledError("Task cancelled before finalize")
+
+            if final_zip_path.exists():
+                try:
+                    final_zip_path.unlink()
+                except Exception as e:
+                    logger.warning(f"Could not remove existing zip {final_zip_path}: {e}")
+
+            temp_zip_path.rename(final_zip_path)
+            
+            # Register asset in DB
+            from app.db.database import db
+            size_bytes = final_zip_path.stat().st_size
+            if size_bytes < 1024 * 1024:
+                size_str = f"{size_bytes / 1024:.1f}KB"
+            else:
+                size_str = f"{size_bytes / (1024 * 1024):.1f}MB"
+            
+            cursor = db.get_cursor()
+            cursor.execute(
+                "INSERT INTO book_assets (book_name, filename, description, size_str) VALUES (?, ?, ?, ?)",
+                (book_name, file_basename, description, size_str)
+            )
+            db.commit()
+            
+        logger.info(f"✅ '{book_name}' 打包完成: {file_basename}")
+        log_manager.put_log(f"✅ '{book_name}' 打包完成 [{description}]。")
+
+    except asyncio.CancelledError:
+        logger.warning(f"🚫 打包任务已取消: {book_name}")
+        log_manager.put_log(f"🚫 打包任务已取消: {book_name}")
+        # Cleanup happens in finally block
+    except Exception as e:
+        logger.error(f"❌ 打包 '{book_name}' 失败: {e}")
+        log_manager.put_log(f"❌ 打包 '{book_name}' 失败: {e}")
+    finally:
+        # Cleanup temp file
+        if temp_zip_path and temp_zip_path.exists():
+            try:
+                temp_zip_path.unlink()
+                logger.info(f"🧹 已清理临时文件: {temp_zip_path}")
+            except Exception as e:
+                logger.error(f"清理临时文件失败: {e}")
+
+        # Reset state
+        if book_name in state.active_packers:
+            del state.active_packers[book_name]
+        if book_name in state.cancel_events:
+            del state.cancel_events[book_name]
+
+
+@router.post("/pack/{book_name}", status_code=202)
+async def pack_book_endpoint(
+    book_name: str, 
+    background_tasks: BackgroundTasks, 
+    description: str = "Full Pack",
+    file_ids: Optional[str] = Query(None) # Pass as comma separated string
+):
+    """Start packing book audio"""
+    logger.info(f"📥 Pack request: {book_name}, Desc: {description}, IDs: {file_ids}")
+    parsed_ids = None
+    if file_ids:
+        try:
+            parsed_ids = [int(x.strip()) for x in file_ids.split(",") if x.strip()]
+            logger.info(f"🔢 Parsed IDs: {parsed_ids}")
+        except ValueError:
+            logger.error(f"❌ Invalid file_ids: {file_ids}")
+            raise HTTPException(status_code=400, detail="Invalid file_ids format")
+
+    if book_name in state.active_packers:
+        # Check if cancelling
+        if state.active_packers[book_name] == "cancelling":
+             raise HTTPException(status_code=400, detail="Previous task is cancelling, please wait")
+        raise HTTPException(status_code=400, detail="Packing task already in progress")
+        
+    target_dir = get_book_dir(book_name)
     if not target_dir.exists():
         raise HTTPException(status_code=404, detail="Book directory not found")
         
-    # Create zip in memory
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for root, dirs, files in os.walk(target_dir):
-            for file in files:
-                if file.endswith(".mp3"):
-                    file_path = os.path.join(root, file)
-                    zip_file.write(file_path, arcname=file)
-                    
-    buffer.seek(0)
-    return StreamingResponse(
-        buffer, 
+    # Init cancellation event
+    cancel_event = threading.Event()
+    state.cancel_events[book_name] = cancel_event
+
+    # Set state
+    state.active_packers[book_name] = "packing"
+    
+    # Start task
+    background_tasks.add_task(pack_book_task, book_name, target_dir, cancel_event, description, parsed_ids)
+    
+    return {"message": "Packing task started", "status": "packing"}
+
+@router.post("/pack/cancel/{book_name}")
+async def cancel_pack_endpoint(book_name: str):
+    """Cancel packing task"""
+    if book_name not in state.active_packers:
+        raise HTTPException(status_code=404, detail="No active packing task found")
+    
+    if book_name in state.cancel_events:
+        state.cancel_events[book_name].set()
+        state.active_packers[book_name] = "cancelling"
+        log_manager.put_log(f"🛑 正在中止 '{book_name}' 的打包任务...")
+        return {"message": "Cancellation requested", "status": "cancelling"}
+    
+    return {"message": "Task not cancellable or already finished"}
+
+@router.get("/assets/download/{asset_id}")
+async def download_asset(asset_id: int):
+    """Download specific asset by ID"""
+    from app.db.database import db
+    cursor = db.get_cursor()
+    cursor.execute("SELECT filename, book_name FROM book_assets WHERE id = ?", (asset_id,))
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    zip_path = EXPORT_DIR / row['filename']
+    if not zip_path.exists():
+        raise HTTPException(status_code=404, detail="Physical file missing")
+        
+    return FileResponse(
+        zip_path, 
         media_type="application/zip", 
-        headers={"Content-Disposition": f"attachment; filename={book_name}.zip"}
+        filename=row['filename']
     )
+
+@router.get("/download_zip/{book_name}")
+async def download_book_zip(book_name: str):
+    """Download the LATEST packed zip for a book"""
+    from app.db.database import db
+    cursor = db.get_cursor()
+    cursor.execute(
+        "SELECT id, filename FROM book_assets WHERE book_name = ? ORDER BY created_at DESC LIMIT 1",
+        (book_name,)
+    )
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="No zip files found for this book")
+    
+    return await download_asset(row['id'])
+
+@router.delete("/zip/{book_name}")
+async def delete_book_zip(book_name: str, asset_id: Optional[int] = Query(None)):
+    """Delete packed zip (specific asset or all)"""
+    from app.db.database import db
+    cursor = db.get_cursor()
+    
+    if asset_id:
+        cursor.execute("SELECT filename FROM book_assets WHERE id = ? AND book_name = ?", (asset_id, book_name))
+        row = cursor.fetchone()
+        if row:
+            filepath = EXPORT_DIR / row['filename']
+            if filepath.exists(): filepath.unlink()
+            cursor.execute("DELETE FROM book_assets WHERE id = ?", (asset_id,))
+            db.commit()
+            return {"message": f"Asset {asset_id} deleted"}
+        raise HTTPException(status_code=404, detail="Asset not found")
+    else:
+        # Delete ALL assets for this book
+        cursor.execute("SELECT filename FROM book_assets WHERE book_name = ?", (book_name,))
+        rows = cursor.fetchall()
+        for row in rows:
+            filepath = EXPORT_DIR / row['filename']
+            if filepath.exists(): filepath.unlink()
+        
+        cursor.execute("DELETE FROM book_assets WHERE book_name = ?", (book_name,))
+        db.commit()
+        return {"message": "All zip assets for this book deleted"}
 
 @router.post("/merge/{book_name}")
 async def merge_audio(book_name: str, request: GenerateRequest): 
@@ -373,8 +692,13 @@ async def merge_audio(book_name: str, request: GenerateRequest):
             "-c", "copy", 
             str(output_path)
         ]
+        
+        logger.info(f"🔗 开始合并 '{book_name}' 的音频 (共 {len(mp3_files)} 个文件)...")
+
         # Run in thread to not block event loop
         await asyncio.to_thread(subprocess.check_call, cmd)
+        
+        logger.info(f"✅ 音频合并完成: {output_path.name}")
         
     except FileNotFoundError:
         raise HTTPException(status_code=500, detail="ffmpeg not installed on server")

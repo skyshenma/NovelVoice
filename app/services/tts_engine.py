@@ -245,6 +245,9 @@ class TTSProcessor:
         filename = f"{chapter_index:04d}-{safe_title}.mp3"
         output_path = self.book_dir / filename
         
+        # 上下文信息用于日志
+        context_info = f"[{chapter_index}] {title}"
+
         # 1. 检查断点续传
         # 数据库显示完成，或者文件存在且不为空
         if status == "completed" and output_path.exists() and output_path.stat().st_size > 0:
@@ -254,29 +257,29 @@ class TTSProcessor:
         # 或者我们强制覆盖
         
         async with self.semaphore:
-            self.log(f"[{chapter_index}] 开始合成: {title} (长度: {len(content)})")
+            self.log(f"{context_info} 开始合成 (长度: {len(content)})")
             
             try:
                 if len(content) > self.max_chars:
-                    self.log(f"[{chapter_index}] 文本过长，执行切割处理...")
-                    await self._synthesize_long_text(content, output_path)
+                    self.log(f"{context_info} 文本过长，执行切割处理...")
+                    await self._synthesize_long_text(content, output_path, context_info)
                 else:
-                    await self._synthesize_with_retry(content, output_path)
+                    await self._synthesize_with_retry(content, output_path, context_info)
                 
                 # 3. 更新状态
                 newTask = dict(task) # shallow copy
                 newTask["status"] = "completed"
                 newTask["audio_path"] = str(output_path.name)
-                self.log(f"[{chapter_index}] 合成完成: {filename}")
+                self.log(f"{context_info} 合成完成: {filename}")
                 return newTask
                 
             except Exception as e:
-                self.log(f"[{chapter_index}] 合成失败: {e}")
+                self.log(f"{context_info} 合成失败: {e!r}", level="ERROR")
                 newTask = dict(task)
                 newTask["status"] = "failed"
                 return newTask
 
-    async def _synthesize_with_retry(self, text: str, output_path: pathlib.Path, max_retries: int = 3):
+    async def _synthesize_with_retry(self, text: str, output_path: pathlib.Path, context_info: str = "", max_retries: int = 3):
         """带重试的合成 (Timeout + Exponential Backoff)"""
         for attempt in range(max_retries):
             try:
@@ -299,19 +302,19 @@ class TTSProcessor:
                 wait_time = min(wait_time, 30)
                 
                 if attempt < max_retries - 1:
-                    self.log(f"合成重试 ({attempt+1}/{max_retries}) 失败: {e}, 等待 {wait_time}s...", level="WARNING")
+                    self.log(f"{context_info} 合成重试 ({attempt+1}/{max_retries}) 失败: {e!r}, 等待 {wait_time}s...", level="WARNING")
                     await asyncio.sleep(wait_time)
                 else:
-                    self.log(f"最终失败: {e}", level="ERROR")
+                    self.log(f"{context_info} 最终失败: {e!r}", level="ERROR")
                     raise e
 
-    async def _synthesize_long_text(self, text: str, output_path: pathlib.Path):
+    async def _synthesize_long_text(self, text: str, output_path: pathlib.Path, context_info: str = ""):
         """长文本切割合成并合并"""
         from app.core.text_splitter import TextSplitter
         splitter = TextSplitter()
         chunks = splitter.split_text(text, self.max_chars)
         
-        self.log(f"智能切分: {len(text)} 字符 -> {len(chunks)} 片段")
+        self.log(f"{context_info} 智能切分: {len(text)} 字符 -> {len(chunks)} 片段")
 
         # 分别合成
         temp_files = []
@@ -320,7 +323,9 @@ class TTSProcessor:
             for i, chunk in enumerate(chunks):
                 temp_file = output_path.with_name(f"{output_path.stem}_part{i}.mp3")
                 temp_files.append(temp_file)
-                await self._synthesize_with_retry(chunk, temp_file)
+                # Pass context info with part index
+                part_context = f"{context_info} [Part {i+1}/{len(chunks)}]"
+                await self._synthesize_with_retry(chunk, temp_file, context_info=part_context)
             
             # 使用 FFmpeg 合并
             # 1. 生成文件列表内容
@@ -336,7 +341,7 @@ class TTSProcessor:
                 "-i", str(list_file), "-c", "copy", str(output_path)
             ]
             
-            self.log(f"FFmpeg 合并开始: {output_path.name}")
+            self.log(f"{context_info} FFmpeg 合并开始: {output_path.name}")
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
@@ -348,7 +353,7 @@ class TTSProcessor:
                 error_msg = stderr.decode().strip()
                 raise Exception(f"FFmpeg 合并失败 (code {process.returncode}): {error_msg}")
             
-            self.log(f"FFmpeg 合并完成: {output_path.name}")
+            self.log(f"{context_info} FFmpeg 合并完成: {output_path.name}")
                         
         finally:
             # 清理临时文件
