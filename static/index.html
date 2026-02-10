@@ -1346,6 +1346,14 @@
                     try {
                         const res = await api.get('/books');
                         books.value = res.data;
+
+                        // [Fix] Update currentBook reference if it exists to prevent stale UI
+                        if (currentBook.value) {
+                            const updated = books.value.find(b => b.name === currentBook.value.name);
+                            if (updated) {
+                                currentBook.value = updated;
+                            }
+                        }
                     } catch (e) { console.error(e); }
                 };
 

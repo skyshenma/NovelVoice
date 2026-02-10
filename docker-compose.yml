@@ -26,7 +26,7 @@ services:
       - NOVELVOICE_PORT=8000
       - TZ=America/Los_Angeles
       # 应用版本 (可选, 用于显式覆盖, 默认会自动从 docs/changelog.md 提取)
-      # - NOVELVOICE_VERSION=1.4.0
+      # - NOVELVOICE_VERSION=1.4.1
 
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/books" ]
