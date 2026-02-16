@@ -42,7 +42,7 @@ COPY docs ./docs
 COPY data/config/config.example.yml ./data/config/
 
 # Create necessary directories
-RUN mkdir -p /data/app /data/cache /data/config /data/db && \
+RUN mkdir -p /data/app /data/cache /data/config /data/db /data/logs && \
     chmod -R 755 /data
 
 # Copy entrypoint script

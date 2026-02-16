@@ -7,6 +7,36 @@ NovelVoice 的所有重要更改都将记录在此文件中。
 
 ## [未发布]
 
+## [1.5.0] - 2026-02-15
+
+### 🐛 关键 Bug 修复 (Critical Bug Fixes)
+- **Vue 应用挂载失败**: 修复了由于 HTML 结构错误导致的 Vue 应用无法正确挂载的问题
+  - 根本原因：`#app` 容器在 Log Modal 后被过早关闭（line 681），导致 Update Modal、Context Menu 等组件位于 Vue 实例外部
+  - 影响：所有模态框按钮无响应，页面显示原始模板语法（`{{ }}` 未渲染）
+  - 解决方案：移除多余的 `</div>` 标签，确保 `#app` 正确包含所有 Vue 组件
+- **更新提示弹窗无响应**: 修复了"发现新版本"弹窗中"暂不更新"按钮点击无效的问题
+  - 重构 `dismissUpdate` 为 `handleDismissUpdate`，添加错误处理
+  - 使用 `@click.stop` 防止事件冲突
+
+### ✨ 日志系统重构 (Log System Refactoring)
+- **历史日志回溯**: WebSocket 连接时自动推送最近 200 条历史日志，页面刷新不丢失上下文
+- **持久化存储**: 关键操作（删除、打包失败等）自动记录到 `/data/logs/operation.log`
+- **结构化日志**: 后端日志统一为 JSON 格式 `{level, message, timestamp, category}`
+- **可视化增强**: 
+  - 支持日志分级显示（Success/Error/Warning/Info）并使用不同颜色
+  - 新增日志筛选功能（全部/打包/错误）
+  - 实现滚动锁定（向上滚动时暂停自动滚动）
+  - 显示日志时间戳和实时 WebSocket 连接状态
+
+### 🔧 UI/UX 改进 (UI/UX Improvements)
+- **文件管理器优化**: 修复了"文件管理"按钮在未选择书籍时无反应的问题，现在会显示友好的提示信息
+- **错误提示增强**: 改进了全局 Toast 通知系统的错误处理和用户反馈
+
+### 🛠️ 代码质量 (Code Quality)
+- **防御性编程**: 在 `filteredLogs` 计算属性中添加空值检查，防止运行时错误
+- **代码清理**: 移除重复的 `logs` 声明和 `onLogScroll` 函数定义
+- **返回值优化**: 完全重写 `setup()` 函数的返回语句，确保所有变量正确暴露给模板
+
 ## [1.4.1] - 2026-02-10
 
 ### 🐛 Bug Fixes

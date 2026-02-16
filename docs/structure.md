@@ -97,6 +97,8 @@ data/
 │   └── config.yml              # 主配置文件
 ├── db/                         # 数据库目录 (v1.3.0+)
 │   └── novelvoice.db           # 任务状态数据库
+├── logs/                       # 日志目录 (v1.5.0+)
+│   └── operation.log           # 操作日志（持久化）
 ├── app/
 │   └── books/
 │       ├── 三体/

@@ -7,7 +7,7 @@ echo "🚀 Starting NovelVoice..."
 
 # Create necessary directories
 echo "📁 Creating data directories..."
-mkdir -p /data/app /data/cache /data/config /data/db
+mkdir -p /data/app /data/cache /data/config /data/db /data/logs
 
 # Copy example config if config.yml doesn't exist
 if [ ! -f "/data/config/config.yml" ]; then

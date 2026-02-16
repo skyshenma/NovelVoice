@@ -469,7 +469,7 @@ def pack_book_task(book_name: str, target_dir: pathlib.Path, cancel_event: threa
                 
                 if total_files > 0 and (i + 1) % max(1, total_files // 20) == 0:
                     percent = int((i + 1) / total_files * 100)
-                    log_manager.put_log(f"📦 '{book_name}' 打包进度: {percent}% ({i + 1}/{total_files})")
+                    log_manager.put_log(f"📦 '{book_name}' 打包进度: {percent}% ({i + 1}/{total_files})", level="info")
 
         # Move to final and register in DB
         if temp_zip_path.exists():
@@ -500,15 +500,15 @@ def pack_book_task(book_name: str, target_dir: pathlib.Path, cancel_event: threa
             db.commit()
             
         logger.info(f"✅ '{book_name}' 打包完成: {file_basename}")
-        log_manager.put_log(f"✅ '{book_name}' 打包完成 [{description}]。")
+        log_manager.put_log(f"✅ '{book_name}' 打包完成 [{description}]。", level="success")
 
     except asyncio.CancelledError:
         logger.warning(f"🚫 打包任务已取消: {book_name}")
-        log_manager.put_log(f"🚫 打包任务已取消: {book_name}")
+        log_manager.put_log(f"🚫 打包任务已取消: {book_name}", level="warning")
         # Cleanup happens in finally block
     except Exception as e:
         logger.error(f"❌ 打包 '{book_name}' 失败: {e}")
-        log_manager.put_log(f"❌ 打包 '{book_name}' 失败: {e}")
+        log_manager.put_log(f"❌ 打包 '{book_name}' 失败: {e}", level="error")
     finally:
         # Cleanup temp file
         if temp_zip_path and temp_zip_path.exists():
@@ -574,7 +574,7 @@ async def cancel_pack_endpoint(book_name: str):
     if book_name in state.cancel_events:
         state.cancel_events[book_name].set()
         state.active_packers[book_name] = "cancelling"
-        log_manager.put_log(f"🛑 正在中止 '{book_name}' 的打包任务...")
+        log_manager.put_log(f"🛑 正在中止 '{book_name}' 的打包任务...", level="warning")
         return {"message": "Cancellation requested", "status": "cancelling"}
     
     return {"message": "Task not cancellable or already finished"}

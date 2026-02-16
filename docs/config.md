@@ -199,11 +199,21 @@ voices:
 ```yaml
 logging:
   level: "INFO"                 # 日志级别: DEBUG, INFO, WARNING, ERROR
-  max_logs: 200                 # 内存中保留的最大日志条数
+  max_logs: 200                 # 内存中保留的最大日志条数 (v1.5.0+)
   max_bytes: 10485760           # 单个日志文件大小 (10MB)
   backup_count: 5               # 保留历史日志文件数
   error_log_file: "error.log"   # 错误日志文件名
 ```
+
+**v1.5.0 新增功能**:
+- **历史日志回溯**: WebSocket 连接时自动推送最近 200 条历史日志
+- **持久化存储**: 关键操作自动记录到 `/data/logs/operation.log`
+- **结构化日志**: 统一 JSON 格式 `{level, message, timestamp, category}`
+- **可视化增强**: 
+  - 日志分级显示（Success/Error/Warning/Info）
+  - 日志筛选功能（全部/打包/错误）
+  - 滚动锁定（向上滚动时暂停自动滚动）
+  - 实时 WebSocket 连接状态显示
 
 ## 环境变量示例
 

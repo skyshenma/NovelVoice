@@ -36,6 +36,10 @@ data/export/*
 data/db/*
 !data/db/.gitkeep
 
+# 日志目录 (v1.5.0+)
+data/logs/*
+!data/logs/.gitkeep
+
 
 # 配置文件 (保护敏感信息)
 # 主配置文件包含敏感信息,不提交到仓库
